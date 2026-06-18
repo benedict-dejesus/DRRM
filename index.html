@@ -45,7 +45,14 @@
     border-radius:6px;
     box-shadow: inset 0 0 0 4px #0d0d1a, inset 0 0 0 8px #1a1a2e, inset 0 0 22px rgba(0,0,0,0.6);
   }
-  canvas{ display:block; image-rendering:pixelated; image-rendering:crisp-edges; }
+  canvas { 
+    display: block; 
+    image-rendering: pixelated; 
+    image-rendering: crisp-edges; 
+    width: 100%; 
+    height: 100%; 
+    object-fit: contain; 
+  }
 
   /* ===== HUD ===== */
   #hud{
@@ -98,13 +105,29 @@
   }
   @keyframes blinker{ 50%{ opacity:0; } }
 
-  /* ===== Dialog box ===== */
-  #dialog{
-    position:absolute; left:10px; bottom:10px; width:460px; min-height:104px;
-    background:var(--cream); border:4px solid var(--ink); border-radius:6px;
-    padding:14px 18px; font-size:11px; line-height:1.8; color:var(--ink);
-    display:none; z-index:150; cursor:pointer; box-shadow:0 0 0 2px var(--ink) inset;
+/* ===== Dialog box ===== */
+  #dialog {
+    position: absolute; 
+    left: 10px; 
+    right: 10px; 
+    bottom: 10px; 
+    width: auto; 
+    max-width: calc(100% - 20px);
+    min-height: 104px;
+    background: var(--cream); 
+    border: 4px solid var(--ink); 
+    border-radius: 6px;
+    padding: 14px 18px; 
+    font-size: 11px; 
+    line-height: 1.8; 
+    color: var(--ink);
+    display: none; 
+    z-index: 150; 
+    cursor: pointer; 
+    box-shadow: 0 0 0 2px var(--ink) inset;
+    box-sizing: border-box;
   }
+
   #dialog-text{ white-space:pre-line; }
   #dialog .arrow{ position:absolute; right:14px; bottom:10px; display:none; animation:blinker .6s step-start infinite; }
   #dialog.show-arrow .arrow{ display:block; }
@@ -194,10 +217,20 @@
   }
   .a-btn:active{ background:#ff6a5c; }
   @media (max-width:560px){
-    .console{ padding:14px 14px 10px; }
-    #game-container{ width:340px; height:340px; }
-    .touch-controls{ display:flex; }
-    .controls-hint{ display:none; }
+    .console { 
+      padding: 14px 14px 10px; 
+      width: 100%; 
+      max-width: 100vw; 
+      box-sizing: border-box; 
+    }
+    #game-container { 
+      width: 100%; 
+      max-width: 340px; 
+      aspect-ratio: 1 / 1; 
+      height: auto; 
+    }
+    .touch-controls { display: flex; }
+    .controls-hint { display: none; }
   }
 </style>
 </head>
