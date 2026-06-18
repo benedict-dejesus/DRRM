@@ -194,10 +194,27 @@
   }
   .a-btn:active{ background:#ff6a5c; }
   @media (max-width:560px){
-    .console{ padding:14px 14px 10px; }
-    #game-container{ width:340px; height:340px; }
-    .touch-controls{ display:flex; }
-    .controls-hint{ display:none; }
+    .console{ 
+      padding: 14px; 
+      width: 340px; /* Constrains the console to fit smaller screens */
+      max-width: 95vw; 
+      box-sizing: border-box; 
+    }
+    #game-container{ 
+      width: 480px;  /* Keep the original dimensions so inner elements don't break */
+      height: 480px; 
+      transform: scale(0.65); /* Visually zooms out the game by 35% */
+      transform-origin: top left; /* Anchors the scaling to the top-left corner */
+      margin-bottom: -168px; /* Collapses the empty layout space left behind (480 - 480*0.65) */
+      margin-right: -168px; 
+    }
+    .touch-controls{ 
+      display: flex; 
+      margin-top: 12px; /* Adds a bit of breathing room for the D-pad */
+    }
+    .controls-hint{ 
+      display: none; 
+    }
   }
 </style>
 </head>
