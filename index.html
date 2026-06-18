@@ -2,732 +2,1091 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Malolos City — Disaster Readiness Guide</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --cream: #f7f0e1;
-    --ink: #1a1a2e;
-    --red: #e0463a;
-    --blue: #4a7fd6;
-    --teal: #3a9b6e;
-    --gold: #e0a72e;
-    --hp-green: #6abe30;
-    --hp-yellow: #f7d51d;
-    --hp-red: #e0463a;
+  :root{
+    --cream:#f7f0e1;
+    --ink:#1a1a2e;
+    --red:#e0463a;
+    --blue:#4a7fd6;
+    --teal:#3a9b6e;
+    --gold:#e0a72e;
+    --hp-green:#6abe30;
+    --hp-yellow:#f7d51d;
+    --hp-red:#e0463a;
   }
-  
-  * { box-sizing: border-box; }
-  
-  html, body { 
-    margin: 0; 
-    padding: 0; 
-    width: 100vw; 
-    height: 100dvh; /* Uses actual dynamic viewport height on mobile */
-    overflow: hidden; /* Prevents any native browser scrolling */
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; }
+  body{
+    min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
     background: radial-gradient(circle at 50% -10%, #38395c 0%, #14141f 65%);
-    font-family: 'Press Start 2P', monospace; 
-    color: var(--cream); 
-    user-select: none; 
-    -webkit-user-select: none;
-    touch-action: none; /* Disables pull-to-refresh and pinch-zoom */
-    display: flex; 
-    align-items: center; 
-    justify-content: center;
+    font-family:'Press Start 2P', monospace; color:var(--cream); user-select:none;
+    padding:20px; gap:10px;
+  }
+  /* ===== Console shell ===== */
+  .console{
+    position:relative;
+    background:linear-gradient(160deg,#4c4c6e,#26263a);
+    border-radius:18px 18px 46px 18px;
+    padding:24px 24px 16px;
+    box-shadow:0 24px 60px rgba(0,0,0,0.55), inset 0 2px 0 rgba(255,255,255,0.08);
+  }
+  .console-led{
+    position:absolute; top:13px; right:26px; width:9px; height:9px; border-radius:50%;
+    background:var(--hp-green); box-shadow:0 0 8px var(--hp-green);
+  }
+  .console-label{
+    position:absolute; top:13px; left:26px; font-size:8px; letter-spacing:2px; color:#9a9ac4;
+  }
+  #game-container{
+    position:relative; width:480px; height:480px; background:#000; overflow:hidden;
+    border-radius:6px;
+    box-shadow: inset 0 0 0 4px #0d0d1a, inset 0 0 0 8px #1a1a2e, inset 0 0 22px rgba(0,0,0,0.6);
+  }
+  canvas{ display:block; image-rendering:pixelated; image-rendering:crisp-edges; }
+
+  /* ===== HUD ===== */
+  #hud{
+    position:absolute; top:8px; left:8px; z-index:40;
+    background:rgba(20,20,36,0.82); border:2px solid var(--cream); border-radius:4px;
+    padding:5px 8px; font-size:8px; display:flex; align-items:center; gap:8px; line-height:1.6;
+  }
+  #hud .badges{ display:flex; gap:3px; }
+  #hud .badge-slot{
+    width:16px; height:16px; border:1px solid var(--cream); border-radius:50%;
+    display:flex; align-items:center; justify-content:center; background:#000; opacity:.35;
+  }
+  #hud .badge-slot.earned{ opacity:1; box-shadow:0 0 6px var(--gold); border-color:var(--gold); }
+  #hud .badge-slot canvas{ width:12px; height:12px; }
+  #dex{
+    position:absolute; top:8px; right:8px; z-index:40;
+    background:rgba(20,20,36,0.82); border:2px solid var(--cream); border-radius:4px;
+    padding:5px 8px; font-size:8px; color:var(--hp-yellow);
   }
 
-  /* * THE MASTER WRAPPER
-   * This box is rigidly set to 800x750. 
-   * JS will scale this entire box up or down to fit the screen.
-   */
-  #game-wrapper {
-    position: relative;
-    width: 800px;
-    height: 750px;
-    transform-origin: center center;
+  /* ===== Overlays ===== */
+  .overlay{
+    position:absolute; inset:0; display:none; flex-direction:column;
+    align-items:center; justify-content:center; z-index:100; padding:22px; box-sizing:border-box;
+  }
+  .overlay.active{ display:flex; }
+
+  /* ===== Title screen ===== */
+  #startup{
+    background:linear-gradient(180deg,#4a7fd6 0%, #74b04a 54%, #6abe30 100%);
+    text-align:center;
+  }
+  .logo{
+    font-size:30px; line-height:1.35; color:#fff;
+    text-shadow:4px 4px 0 var(--red), 8px 8px 0 var(--ink);
+    letter-spacing:2px; margin-top:6px;
+  }
+  .subtitle{
+    margin-top:14px; font-size:9px; background:var(--ink); color:var(--hp-yellow);
+    padding:6px 12px; border-radius:3px; letter-spacing:2px;
+  }
+  .role-tag{
+    margin-top:26px; font-size:9px; color:var(--ink); background:rgba(255,255,255,0.88);
+    padding:8px 14px; border:2px solid var(--ink); line-height:1.8; border-radius:2px;
+  }
+  #title-sprite{ margin-top:16px; width:48px; height:48px; image-rendering:pixelated; }
+  .blink{
+    margin-top:18px; font-size:10px; color:var(--ink); cursor:pointer;
+    animation:blinker 1s step-start infinite; background:rgba(255,255,255,0.6); padding:6px 10px; border-radius:2px;
+  }
+  @keyframes blinker{ 50%{ opacity:0; } }
+
+  /* ===== Dialog box ===== */
+  #dialog{
+    position:absolute; left:10px; bottom:10px; width:460px; min-height:104px;
+    background:var(--cream); border:4px solid var(--ink); border-radius:6px;
+    padding:14px 18px; font-size:11px; line-height:1.8; color:var(--ink);
+    display:none; z-index:150; cursor:pointer; box-shadow:0 0 0 2px var(--ink) inset;
+  }
+  #dialog-text{ white-space:pre-line; }
+  #dialog .arrow{ position:absolute; right:14px; bottom:10px; display:none; animation:blinker .6s step-start infinite; }
+  #dialog.show-arrow .arrow{ display:block; }
+
+  /* ===== Generic menu box (Directories) ===== */
+  .menu-box{
+    background:var(--cream); border:4px solid var(--ink); border-radius:8px;
+    padding:18px 22px; width:92%; max-width:410px; color:var(--ink); box-shadow:0 0 0 2px var(--ink) inset;
+  }
+  .menu-box h3{ font-size:13px; margin:0 0 6px; letter-spacing:1px; line-height:1.4; }
+  .menu-box p{ font-size:9px; line-height:1.6; margin:0 0 14px; color:var(--red); }
+  .menu-box ul{ font-size:9px; line-height:1.9; padding-left:16px; margin:0 0 14px; }
+  .menu-btn{
+    display:block; width:100%; padding:10px; margin:8px 0; font-family:'Press Start 2P';
+    font-size:9px; background:#fff; border:2px solid var(--ink); cursor:pointer; text-align:center; color:var(--ink);
+  }
+  .menu-btn:hover{ background:#eee; }
+
+  /* ===== Battle screen ===== */
+  #battle-screen{
+    background:linear-gradient(180deg,#bfe6c1 0%, #bfe6c1 58%, #8a5a2c 58%, #8a5a2c 100%);
+    padding:0; justify-content:flex-end;
+  }
+  .battle-field{ position:absolute; top:0; left:0; right:0; bottom:118px; }
+  .platform{ position:absolute; width:120px; height:30px; background:rgba(0,0,0,0.18); border-radius:50%; }
+  .opp-platform{ top:78px; right:46px; }
+  .ply-platform{ bottom:46px; left:34px; }
+  .sprite-box{ position:absolute; image-rendering:pixelated; }
+  #opp-sprite{ top:18px; right:60px; width:64px; height:64px; }
+  #ply-sprite{ bottom:58px; left:48px; width:96px; height:96px; }
+  .info-box{
+    position:absolute; background:var(--cream); border:3px solid var(--ink); border-radius:6px;
+    padding:8px 10px; font-size:9px; min-width:158px; color:var(--ink); line-height:1.5;
+  }
+  .opp-info{ top:14px; left:14px; }
+  .ply-info{ bottom:14px; right:14px; }
+  .hp-row{ display:flex; align-items:center; gap:6px; margin-top:4px; }
+  .hp-label{ font-size:8px; color:var(--blue); }
+  .hp-bar-bg{ flex:1; height:6px; background:#999; border:1px solid var(--ink); }
+  .hp-bar{ height:100%; background:var(--hp-green); width:100%; transition:width .5s ease; }
+  #battle-msgbox{
+    position:absolute; left:0; right:0; bottom:0; height:118px;
+    background:var(--cream); border-top:4px solid var(--ink); padding:12px 16px; box-sizing:border-box; color:var(--ink);
+  }
+  #battle-text{ font-size:9px; line-height:1.6; min-height:40px; white-space:pre-line; }
+  .battle-actions{ display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+  .battle-btn{
+    font-family:'Press Start 2P'; font-size:8px; background:#fff; border:2px solid var(--ink);
+    padding:8px; cursor:pointer; color:var(--ink); text-align:left;
+  }
+  .battle-btn:hover{ background:#eee; }
+  .battle-btn:disabled{ opacity:.4; cursor:default; }
+
+  /* ===== Fade transition ===== */
+  #fade{
+    position:absolute; inset:0; background:#000; opacity:0; pointer-events:none;
+    transition:opacity .25s; z-index:200;
+  }
+  #fade.show{ opacity:1; }
+
+  /* ===== Sound toggle ===== */
+  #mute-btn{
+    position:absolute; bottom:8px; right:8px; z-index:45;
+    background:rgba(20,20,36,0.82); color:var(--cream); border:2px solid var(--cream);
+    border-radius:4px; font-family:'Press Start 2P'; font-size:8px; padding:5px 7px; cursor:pointer;
   }
 
-  /* Game Container (Fixed 800x600) */
-  #game-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 800px; 
-    height: 600px; 
-    box-shadow: 0 0 0 4px var(--ink), 0 0 0 8px var(--cream), 0 15px 30px rgba(0,0,0,0.5);
-    background: #000; 
-    border-radius: 4px; 
-    overflow: hidden;
+  /* ===== Controls / mobile dpad ===== */
+  .controls-hint{
+    margin-top:6px; font-size:8px; color:#c9c9e6; text-align:center; line-height:1.7;
   }
-  
-  canvas { 
-    display: block; 
-    width: 100%; 
-    height: 100%; 
-    image-rendering: pixelated; 
+  .controls-hint b{ color:var(--hp-yellow); }
+  .touch-controls{
+    display:none; justify-content:space-between; align-items:center; margin-top:10px; padding:0 6px;
   }
-  
-  /* UI Layer (Overlays directly on top of the 800x600 canvas) */
-  #ui-layer { 
-    position: absolute; 
-    top: 0; 
-    left: 0; 
-    width: 100%; 
-    height: 100%; 
-    pointer-events: none; 
-    display: flex; 
-    flex-direction: column; 
-    justify-content: space-between; 
-    padding: 20px; 
-    z-index: 10; 
+  .dpad{ display:grid; grid-template-columns:34px 34px 34px; grid-template-rows:34px 34px 34px; gap:3px; }
+  .dpad button{
+    background:#3d3d58; border:2px solid var(--ink); color:#fff; font-family:'Press Start 2P';
+    border-radius:4px; font-size:12px; touch-action:none;
   }
-  
-  /* Top Bar & Status */
-  .top-bar { display: flex; justify-content: space-between; align-items: flex-start; text-shadow: 2px 2px 0 var(--ink); }
-  .status-box { background: rgba(26,26,46,0.85); padding: 10px 15px; border: 2px solid var(--cream); border-radius: 4px; display: flex; flex-direction: column; gap: 8px; }
-  .hp-bar-bg { width: 150px; height: 12px; background: #444; border: 2px solid var(--ink); position: relative; }
-  .hp-bar-fill { height: 100%; background: var(--hp-green); transition: width 0.3s, background 0.3s; }
-  
-  /* Location Banner */
-  #location-banner { position: absolute; top: 80px; left: 50%; transform: translateX(-50%); background: rgba(224,70,58,0.9); padding: 10px 20px; border: 2px solid var(--cream); text-align: center; opacity: 0; transition: opacity 0.5s; font-size: 14px; text-shadow: 2px 2px 0 var(--ink); box-shadow: 0 4px 0 var(--ink); }
-  
-  /* Objectives */
-  .objectives-box { background: rgba(26,26,46,0.85); padding: 10px; border: 2px solid var(--cream); border-radius: 4px; font-size: 10px; line-height: 1.5; max-width: 250px; text-align: right; text-shadow: 1px 1px 0 var(--ink); }
-  .obj-item { margin-bottom: 5px; color: #aaa; }
-  .obj-item.active { color: var(--gold); }
-  .obj-item.done { color: var(--teal); text-decoration: line-through; }
-  
-  /* Dialog Box */
-  #dialog-box { background: rgba(26,26,46,0.95); border: 4px solid var(--cream); padding: 20px; border-radius: 8px; min-height: 120px; display: none; flex-direction: column; gap: 15px; box-shadow: 0 10px 0 rgba(0,0,0,0.5); position: relative; pointer-events: auto; }
-  #dialog-speaker { color: var(--gold); font-size: 14px; text-transform: uppercase; text-shadow: 2px 2px 0 var(--ink); }
-  #dialog-text { font-size: 12px; line-height: 1.8; color: #fff; }
-  .blinking-arrow { align-self: flex-end; animation: blink 1s infinite; color: var(--gold); }
-  @keyframes blink { 0%,100% {opacity:1;} 50% {opacity:0;} }
-  
-  /* Title Screen */
-  #title-screen { position: absolute; inset: 0; background: rgba(26,26,46,0.95); display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; z-index: 20; padding: 20px; }
-  #title-screen h1 { color: var(--gold); font-size: 32px; text-shadow: 4px 4px 0 var(--red); margin-bottom: 20px; line-height: 1.4; }
-  #title-screen p { font-size: 12px; line-height: 1.6; max-width: 600px; margin-bottom: 40px; color: #ccc; }
-  .start-btn { background: var(--red); color: var(--cream); font-family: inherit; font-size: 16px; padding: 15px 30px; border: 4px solid var(--cream); cursor: pointer; box-shadow: 0 6px 0 var(--ink); transition: transform 0.1s; pointer-events: auto; }
-  .start-btn:active { transform: translateY(6px); box-shadow: 0 0 0 var(--ink); }
-  
-  /* Game Over Screen */
-  #game-over { position: absolute; inset: 0; background: rgba(224,70,58,0.95); display: none; flex-direction: column; align-items: center; justify-content: center; z-index: 20; text-align: center; }
-  #game-over h1 { font-size: 40px; color: var(--ink); margin-bottom: 20px; }
-  
-  /* Mobile Controls (Fixed beneath the canvas) */
-  .mobile-controls { 
-    position: absolute;
-    top: 620px; /* 600px canvas height + 20px gap */
-    left: 0;
-    width: 800px; 
-    display: none; 
-    justify-content: space-between; 
-    align-items: center;
-    padding: 0 20px;
+  .dpad button:active{ background:#5a5a80; }
+  .dpad .d-up{ grid-area:1/2; } .dpad .d-left{ grid-area:2/1; } .dpad .d-mid{ grid-area:2/2; visibility:hidden; }
+  .dpad .d-right{ grid-area:2/3; } .dpad .d-down{ grid-area:3/2; }
+  .a-btn{
+    width:54px; height:54px; border-radius:50%; background:var(--red); border:2px solid var(--ink);
+    color:#fff; font-family:'Press Start 2P'; font-size:11px; touch-action:none;
   }
-  
-  .dpad { display: grid; grid-template-columns: 60px 60px 60px; grid-template-rows: 60px 60px 60px; gap: 5px; }
-  .dpad button, .action-btns button { background: rgba(255,255,255,0.2); border: 2px solid var(--cream); color: var(--cream); font-family: inherit; border-radius: 8px; font-size: 20px; touch-action: none; user-select: none; pointer-events: auto;}
-  .dpad button:active, .action-btns button:active { background: rgba(255,255,255,0.5); }
-  
-  .action-btns { display: flex; gap: 15px; align-items: flex-end; height: 100%; padding-bottom: 20px; }
-  .action-btns button { width: 80px; height: 80px; border-radius: 50%; font-size: 24px; }
-  
-  /* Only show controls on smaller screens */
-  @media (max-width: 850px) {
-    .mobile-controls { display: flex; }
+  .a-btn:active{ background:#ff6a5c; }
+  @media (max-width:560px){
+    .console{ padding:14px 14px 10px; }
+    #game-container{ width:340px; height:340px; }
+    .touch-controls{ display:flex; }
+    .controls-hint{ display:none; }
   }
-
-  /* Sound Toggle - Absolute to screen, NOT the wrapper */
-  #mute-btn { position: absolute; top: 20px; right: 20px; background: none; border: none; color: var(--cream); font-family: inherit; font-size: 10px; cursor: pointer; opacity: 0.5; z-index: 30; pointer-events: auto; }
-  #mute-btn:hover { opacity: 1; }
 </style>
 </head>
 <body>
+  <div class="console">
+    <div class="console-led"></div>
+    <div class="console-label">MALOLOS POCKET</div>
 
-<button id="mute-btn">♪ SOUND: ON</button>
+    <div id="game-container">
+      <canvas id="gameCanvas" width="480" height="480"></canvas>
 
-<div id="game-wrapper">
-  
-  <div id="game-container">
-    <canvas id="gameCanvas" width="800" height="600"></canvas>
-    
-    <div id="ui-layer">
-      <div class="top-bar">
-        <div class="status-box">
-          <div>HP <span id="hp-text">100</span>/100</div>
-          <div class="hp-bar-bg"><div id="hp-fill" class="hp-bar-fill"></div></div>
-          <div style="font-size:10px; color:var(--gold);">DAY <span id="day-text">1</span>/3</div>
+      <div id="hud">
+        <div class="badges">
+          <div class="badge-slot" id="badge-0"></div>
+          <div class="badge-slot" id="badge-1"></div>
+          <div class="badge-slot" id="badge-2"></div>
         </div>
-        <div class="objectives-box" id="obj-container"></div>
+        <div>CITIZEN</div>
       </div>
-      <div id="location-banner">BARASOAIN CHURCH</div>
-      <div id="dialog-box">
-        <div id="dialog-speaker"></div>
-        <div id="dialog-text"></div>
-        <div class="blinking-arrow">▼</div>
+      <div id="dex">SURVIVOR 0/5</div>
+
+      <div id="startup" class="overlay active">
+        <div class="logo">MALOLOS<br>CITY</div>
+        <div class="subtitle">★ DISASTER READINESS ★</div>
+        <div class="role-tag">CDRRMO DIRECTORY<br>&amp; Survival Guide Simulation</div>
+        <canvas id="title-sprite" width="48" height="48"></canvas>
+        <div class="blink" id="start-btn">▶ PRESS ENTER TO START</div>
       </div>
+
+      <div id="dialog"><span id="dialog-text"></span><span class="arrow">▼</span></div>
+
+      <div id="directory-screen" class="overlay">
+        <div class="menu-box">
+          <h3 id="dir-title">BUILDING TITLE</h3>
+          <p id="dir-hotline">HOTLINE: 000-0000</p>
+          <ul id="dir-list">
+            <li>Scenario 1</li>
+          </ul>
+          <button class="menu-btn" onclick="closeDirectory()">EXIT BUILDING</button>
+        </div>
+      </div>
+
+      <div id="battle-screen" class="overlay">
+        <div class="battle-field">
+          <div class="info-box opp-info">
+            <div id="opp-name">EMERGENCY</div>
+            <div class="hp-row"><span class="hp-label">HP</span><div class="hp-bar-bg"><div class="hp-bar" id="opp-hp"></div></div></div>
+          </div>
+          <div class="platform opp-platform"></div>
+          <canvas class="sprite-box" id="opp-sprite" width="64" height="64"></canvas>
+
+          <div class="platform ply-platform"></div>
+          <canvas class="sprite-box" id="ply-sprite" width="96" height="96"></canvas>
+          <div class="info-box ply-info">
+            <div>CITIZEN &nbsp;Lv.10</div>
+            <div class="hp-row"><span class="hp-label">HP</span><div class="hp-bar-bg"><div class="hp-bar" id="ply-hp"></div></div></div>
+          </div>
+        </div>
+        <div id="battle-msgbox">
+          <div id="battle-text"></div>
+          <div class="battle-actions" id="battle-actions">
+            <button class="battle-btn" id="btn-action1">► ACTION 1</button>
+            <button class="battle-btn" id="btn-action2">► ACTION 2</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="fade"></div>
+      <button id="mute-btn">♪ SOUND: ON</button>
     </div>
-    
-    <div id="title-screen">
-      <h1>MALOLOS CITY:<br>DISASTER READINESS</h1>
-      <p>A super typhoon is approaching Bulacan in 3 days. Navigate historic Malolos, gather supplies, and secure your family before the storm hits.</p>
-      <button class="start-btn" onclick="startGame()">START MISSION</button>
+
+    <div class="controls-hint">
+      <b>Arrow Keys / WASD</b> move &nbsp;•&nbsp; <b>Enter / Space</b> interact &amp; advance text
     </div>
-    
-    <div id="game-over">
-      <h1 id="end-title">GAME OVER</h1>
-      <p id="end-desc" style="line-height:1.8; max-width:500px; margin-bottom:30px;"></p>
-      <button class="start-btn" onclick="location.reload()">TRY AGAIN</button>
+    <div class="touch-controls">
+      <div class="dpad">
+        <button class="d-up" data-key="ArrowUp">▲</button>
+        <button class="d-left" data-key="ArrowLeft">◀</button>
+        <div class="d-mid"></div>
+        <button class="d-right" data-key="ArrowRight">▶</button>
+        <button class="d-down" data-key="ArrowDown">▼</button>
+      </div>
+      <button class="a-btn" id="a-btn">A</button>
     </div>
   </div>
-
-  <div class="mobile-controls">
-    <div class="dpad">
-      <div></div><button data-key="ArrowUp">U</button><div></div>
-      <button data-key="ArrowLeft">L</button><button data-key="ArrowDown">D</button><button data-key="ArrowRight">R</button>
-    </div>
-    <div class="action-btns">
-      <button id="b-btn">B</button>
-      <button id="a-btn">A</button>
-    </div>
-  </div>
-
-</div>
 
 <script>
-/* ---------- 1. AUDIO SYSTEM ---------- */
-const AudioContext = window.AudioContext || window.webkitAudioContext;
-let actx;
-let muted = false;
+/* ================= GAME SCRIPT ================= */
+/* ---------- 1. PALETTE & PIXEL ART DATA ---------- */
+const PALETTE = [
+    'transparent', // 0 .
+    '#1a1a2e', // 1 k outline
+    '#ffffff', // 2 w white
+    '#8bcb59', // 3 g lawn light
+    '#5a9a3a', // 4 d lawn dark / tall grass
+    '#f4dca0', // 5 p path
+    '#e0463a', // 6 r red cap/fire
+    '#4a7fd6', // 7 b blue jacket/water
+    '#ffd2a6', // 8 s skin
+    '#8a5a2c', // 9 o brown wood/earth
+    '#2e2030', // 10 h hair dark
+    '#f7f0e1', // 11 c wall cream
+    '#c0392b', // 12 R roof (recolorable)
+    '#8ecae6', // 13 i window blue
+    '#b0aca2', // 14 e stone grey
+    '#5aa9d6', // 15 a water
+    '#3d7fae', // 16 A water dark
+    '#ffd93d', // 17 y yellow
+    '#ff7aa8', // 18 m pink
+    '#2c4a7a', // 19 j denim dark
+    '#4f7a3a', // 20 l tree dark green
+    '#74b04a', // 21 L tree mid green
+    '#ddc28c', // 22 n dirt spot
+    '#e74c3c', // 23 x apple red
+];
+const CMAP = {'.':0, 'k':1, 'w':2, 'g':3, 'd':4, 'p':5, 'r':6, 'b':7, 's':8, 'o':9, 'h':10, 'c':11, 'R':12, 'i':13, 'e':14, 'a':15, 'A':16, 'y':17, 'm':18, 'j':19, 'l':20, 'L':21, 'n':22, 'x':23};
 
-function ensureAudio() {
-    if (!actx) actx = new AudioContext();
-    if (actx.state === 'suspended') actx.resume();
+const RAW_LAWN = [
+    "gggggggggggggggg","gggdgggggggdgggg","ggdddgggggdddggg","gggdgggggggdgggg",
+    "gggggggggggggggg","gggggggggggggggg","gggggggggggggggg","gggggggggggggggg",
+    "gggggggggggggggg","gggdgggggggdgggg","ggdddgggggdddggg","gggdgggggggdgggg",
+    "gggggggggggggggg","gggggggggggggggg","gggggggggggggggg","gggggggggggggggg",
+];
+const RAW_TALLGRASS = [
+    "ddgdddgdddgdddgd","gdddgdddgdddgddd","ddgdddgdddgdddgd","gdddgdddgdddgddd",
+    "ddgdddgdddgdddgd","gdddgdddgdddgddd","ddgdddgdddgdddgd","gdddgdddgdddgddd",
+    "ddgdddgdddgdddgd","gdddgdddgdddgddd","ddgdddgdddgdddgd","gdddgdddgdddgddd",
+    "ddgdddgdddgdddgd","gdddgdddgdddgddd","ddgdddgdddgdddgd","gdddgdddgdddgddd",
+];
+const RAW_PATH = [
+    "pppppppppppppppp","pppppppppppppppp","pppppppppppppppp","ppppnppppppppppp",
+    "pppppppppppppppp","pppppppppppppppp","ppppppppppppnppp","pppppppppppppppp",
+    "pppppppppppppppp","ppnppppppppppppp","pppppppppppppppp","pppppppnpppppppp",
+    "pppppppppppppppp","pppppppppppppnpp","pppppppppppppppp","pppppppppppppppp",
+];
+const RAW_WATER1 = [
+    "aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa","AAaaAAaaAAaaAAaa","AAaaAAaaAAaaAAaa",
+    "aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa",
+    "aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa","AAaaAAaaAAaaAAaa","AAaaAAaaAAaaAAaa",
+    "aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa",
+];
+const RAW_WATER2 = [
+    "aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa",
+    "aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa","AAaaAAaaAAaaAAaa","AAaaAAaaAAaaAAaa",
+    "aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa",
+    "aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa","AAaaAAaaAAaaAAaa","AAaaAAaaAAaaAAaa",
+];
+const RAW_TREE = [
+    "gggggllllllggggg","ggllllllllllllgg","ggllllllllllllgg","gllllllllllllllg",
+    "gllllLLllLLllllg","glllLLllllLLlllg","gllllllllllllllg","gllllllllllllllg",
+    "ggllllllllllllgg","ggllllllllllllgg","gggllllllllllggg","ggggggoooogggggg",
+    "ggggggoooogggggg","ggggggoooogggggg","ggggggoooogggggg","ggggggoooogggggg",
+];
+const RAW_FLOWER = [
+    "gggggggggggggggg","gggdgggggggdgggg","ggdddgggggdddggg","gggdgggggggdgggg",
+    "gggggggggggggggg","gggggggggggggggg","ggggggymgggggggg","ggggggmygggggggg",
+    "gggggggggggggggg","gggdgggggggdgggg","ggdddgggggdddggg","gggdgggggggdgggg",
+    "gggggggggggggggg","gggggggggggggggg","gggggggggggggggg","gggggggggggggggg",
+];
+const RAW_ROOF = [
+    "kkkkkkkkkkkkkkkk","RRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRR","RRRkRRRkRRRkRRRk",
+    "RRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRR","RRRkRRRkRRRkRRRk",
+    "RRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRR","RRRkRRRkRRRkRRRk",
+    "RRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRR","kkkkkkkkkkkkkkkk",
+];
+const RAW_WALLWINDOW = [
+    "kkkkkkkkkkkkkkkk","kcccccccccccccck","kcccccccccccccck","kcccccccccccccck",
+    "kcccccccccccccck","kcccckkkkkkcccck","kcccckiiiikcccck","kcccckiiiikcccck",
+    "kcccckkkkkkcccck","kcccccccccccccck","kcccccccccccccck","kcccccccccccccck",
+    "kcccccccccccccck","kcccccccccccccck","cccccccccccccccc","cccccccccccccccc",
+];
+const RAW_WALLPLAIN = [
+    "kkkkkkkkkkkkkkkk","kcccccccccccccck","kcccccccccccccck","kcccccccccccccck",
+    "kcccccccccccccck","kcccccccccccccck","kcccccccccccccck","kcccccccccccccck",
+    "kcccccccccccccck","kcccccccccccccck","kcccccccccccccck","kcccccccccccccck",
+    "kcccccccccccccck","kcccccccccccccck","kcccccccccccccck","kkkkkkkkkkkkkkkk",
+];
+const RAW_DOOR = [
+    "kkkkkkkkkkkkkkkk","kooookooookooook","kooookooookooook","kooookooookooook",
+    "kooookooookooook","kooookooookooook","kooookooookooook","kooookooookooook",
+    "kooookooookooook","kooookooookooook","kooookooookooook","kooookooookooook",
+    "kooookooookooook","kooookooookooook","koooooooooyooook","kkkkkkkkkkkkkkkk",
+];
+const RAW_SIGN = [
+    "gggggggggggggggg","gggggggggggggggg","gggggggggggggggg","gggkkkkkkkkkkggg",
+    "ggkooooooooookgg","ggkoooeeeeoookgg","ggkooooooooookgg","gggkkkkkkkkkkggg",
+    "gggggggooggggggg","gggggggooggggggg","gggggggooggggggg","gggggggooggggggg",
+    "gggggggooggggggg","gggggggooggggggg","ggggggoooogggggg","ggggggoooogggggg",
+];
+const RAW_PLAYER_DOWN_0 = [
+    "......rrrr......","....rrrrrrrr....","..rrrrwwwwrrrr..","..hkkkkkkkkkkh..",
+    "..hksssssssskh..","..kssksssskssk..","..kssssssssssk..","..kkkkkkkkkkkk..",
+    "..kbbbbbbbbbbk..","..kbbbbkkbbbbk..","..ksbbbbbbbbsk..","..ksbbbbbbbbsk..",
+    "...kbbbbbbbbk...","..kjjjj..jjjjk..","..kjjjj..jjjjk..","...wwww..wwww...",
+];
+const RAW_PLAYER_DOWN_1 = [
+    "......rrrr......","....rrrrrrrr....","..rrrrwwwwrrrr..","..hkkkkkkkkkkh..",
+    "..hksssssssskh..","..kssksssskssk..","..kssssssssssk..","..kkkkkkkkkkkk..",
+    "..kbbbbbbbbbbk..","..kbbbbkkbbbbk..","..ksbbbbbbbbsk..","..ksbbbbbbbbsk..",
+    "...kbbbbbbbbk...","..jjjj....jjjj..","..jjjj....jjjj..","..wwww....wwww..",
+];
+const RAW_PLAYER_UP_0 = [
+    "......rrrr......","....rrrrrrrr....","..rrrrrkkrrrrr..","..hhkkkkkkkkhh..",
+    "..khhhhhhhhhhk..","..khhhhhhhhhhk..","..khhhhhhhhhhk..","...kkkkkkkkkk...",
+    "..kbbbbbbbbbbk..","..kbbbbkkbbbbk..","..ksbbbbbbbbsk..","..ksbbbbbbbbsk..",
+    "...kbbbbbbbbk...","..kjjjj..jjjjk..","..kjjjj..jjjjk..","...wwww..wwww...",
+];
+const RAW_PLAYER_UP_1 = [
+    "......rrrr......","....rrrrrrrr....","..rrrrrkkrrrrr..","..hhkkkkkkkkhh..",
+    "..khhhhhhhhhhk..","..khhhhhhhhhhk..","..khhhhhhhhhhk..","...kkkkkkkkkk...",
+    "..kbbbbbbbbbbk..","..kbbbbkkbbbbk..","..ksbbbbbbbbsk..","..ksbbbbbbbbsk..",
+    "...kbbbbbbbbk...","..jjjj....jjjj..","..jjjj....jjjj..","..wwww....wwww..",
+];
+const RAW_PLAYER_LEFT_0 = [
+    ".....rrrrr......","...rrrrrrr......","rrwwrrrr........","khkkkkkkk.......",
+    "hkssssssk.......","ksksssssk.......","kssssssss.......",".kkkkkkkkk......",
+    ".kbbbbbbbbk.....",".kbbbkkbbbk.....",".ksbbbbbbbk.....",".ksbbbbbbbk.....",
+    "..kbbbbbbbk.....","..kjjj.jjjk.....","..kjjj.jjjk.....","...www.www......",
+];
+const RAW_PLAYER_LEFT_1 = [
+    ".....rrrrr......","...rrrrrrr......","rrwwrrrr........","khkkkkkkk.......",
+    "hkssssssk.......","ksksssssk.......","kssssssss.......",".kkkkkkkkk......",
+    ".kbbbbbbbbk.....",".kbbbkkbbbk.....",".ksbbbbbbbk.....",".ksbbbbbbbk.....",
+    "..kbbbbbbbk.....","..jjj...jjj.....","..jjj...jjj.....","..www...www.....",
+];
+// New Disaster Icons
+const RAW_ICON_QUAKE = [
+    "................","................","................","......kk........",
+    ".....kooo.......","....koooook.....","....ooooookk....","...kooooookok...",
+    "...koooookoook..","..kooooookook...","..ooooooooook...","....kkk...kk....",
+    "................","................","................","................",
+];
+const RAW_ICON_FIRE = [
+    ".......r........","......rrr.......",".....rrrrr......","....rryyyrr.....",
+    "...rryyyyyrr....","...ryyyyyyyr....","..rryyyyyyyrr...","..ryyyyyyyyyr...",
+    "..ryyyyyyyyyr...","...ryyyyyyyr....","....ryyyyyr.....",".....rrrrr......",
+    "......rrr.......","................","................","................",
+];
+const RAW_ICON_MED = [
+    "................","................","......rrrr......","......rrrr......",
+    "......rrrr......","..rrrrrrrrrrrr..","..rrrrrrrrrrrr..","..rrrrrrrrrrrr..",
+    "..rrrrrrrrrrrr..","......rrrr......","......rrrr......","......rrrr......",
+    "................","................","................","................",
+];
+const RAW_ICON_FLOOD = [
+    "................","................","................",".......b........",
+    "......bbb.......",".....bbbbb......","....bbbbbbb.....","...bbbbbbbbb....",
+    "..bbAAbbbAAbb...",".bbAAbbbAAbbbb..",".bbbbbbbbbbbbb..","..bbbbbbbbbbb...",
+    "....bbbbbbb.....","................","................","................",
+];
+const RAW_ICON_CRIME = [
+    ".......kk.......","......kkkk......",".....kkkkkk.....","....kkwkkwwk....",
+    "...kkkwkkwwkk...","...kkkkkkkkkk...","...kkkkkkkkkk...","....kkkkkkkk....",
+    ".....ssssss.....",".....ssssss.....","......ssss......","................",
+    "................","................","................","................",
+];
+
+/* ---------- 2. SPRITE BUILDING HELPERS ---------- */
+function spr(rows){
+    const arr = [];
+    for(const row of rows){ for(const ch of row) arr.push(CMAP[ch]); }
+    return arr;
+}
+function renderSprite(pixelArray, overrides){
+    const c = document.createElement('canvas');
+    c.width = 16; c.height = 16;
+    const cx = c.getContext('2d');
+    for(let y=0;y<16;y++){
+        for(let x=0;x<16;x++){
+            const idx = pixelArray[y*16+x];
+            if(idx===0) continue;
+            cx.fillStyle = (overrides && overrides[idx]) ? overrides[idx] : PALETTE[idx];
+            cx.fillRect(x,y,1,1);
+        }
+    }
+    return c;
 }
 
-function playTone(freq, type, duration, vol=0.1) {
-    if(muted || !actx) return;
-    const osc = actx.createOscillator();
-    const gain = actx.createGain();
-    osc.type = type; osc.frequency.setValueAtTime(freq, actx.currentTime);
-    gain.gain.setValueAtTime(vol, actx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, actx.currentTime + duration);
-    osc.connect(gain); gain.connect(actx.destination);
-    osc.start(); osc.stop(actx.currentTime + duration);
-}
-
-const sfx = {
-    step: () => playTone(150, 'square', 0.1, 0.05),
-    pickup: () => { playTone(600, 'sine', 0.1, 0.1); setTimeout(()=>playTone(800, 'sine', 0.2, 0.1), 100); },
-    talk: () => playTone(400, 'triangle', 0.05, 0.05),
-    hurt: () => playTone(100, 'sawtooth', 0.3, 0.2),
-    win: () => { [400,500,600,800].forEach((f,i)=>setTimeout(()=>playTone(f,'square',0.2,0.1), i*150)); }
+const PIX = {
+    lawn: spr(RAW_LAWN), tallgrass: spr(RAW_TALLGRASS), path: spr(RAW_PATH),
+    water1: spr(RAW_WATER1), water2: spr(RAW_WATER2), tree: spr(RAW_TREE), flower: spr(RAW_FLOWER),
+    roof: spr(RAW_ROOF), wallwindow: spr(RAW_WALLWINDOW), wallplain: spr(RAW_WALLPLAIN), door: spr(RAW_DOOR), sign: spr(RAW_SIGN),
+    player_down_0: spr(RAW_PLAYER_DOWN_0), player_down_1: spr(RAW_PLAYER_DOWN_1),
+    player_up_0: spr(RAW_PLAYER_UP_0), player_up_1: spr(RAW_PLAYER_UP_1),
+    player_left_0: spr(RAW_PLAYER_LEFT_0), player_left_1: spr(RAW_PLAYER_LEFT_1),
+    icon_quake: spr(RAW_ICON_QUAKE), icon_fire: spr(RAW_ICON_FIRE),
+    icon_med: spr(RAW_ICON_MED), icon_flood: spr(RAW_ICON_FLOOD), icon_crime: spr(RAW_ICON_CRIME),
 };
 
-/* ---------- 2. GAME STATE & CONSTANTS ---------- */
+const ROOF_COLORS = { 11:'#c0392b', 12:'#3a9b6e', 13:'#4a90d9', 14:'#e0a72e' };
+const NPC1_COLORS = { 6:'#3a9b6e', 7:'#e0a72e', 10:'#1c3d24' }; 
+const NPC2_COLORS = { 6:'#8e44ad', 7:'#e67e22', 10:'#2a1430' }; 
+
+const IMG = {
+    lawn: renderSprite(PIX.lawn), tallgrass: renderSprite(PIX.tallgrass), path: renderSprite(PIX.path),
+    water1: renderSprite(PIX.water1), water2: renderSprite(PIX.water2), tree: renderSprite(PIX.tree), flower: renderSprite(PIX.flower),
+    wallwindow: renderSprite(PIX.wallwindow), wallplain: renderSprite(PIX.wallplain), door: renderSprite(PIX.door), sign: renderSprite(PIX.sign),
+    roof11: renderSprite(PIX.roof, {12:ROOF_COLORS[11]}), // Red (CDRRMO)
+    roof12: renderSprite(PIX.roof, {12:ROOF_COLORS[12]}), // Green (Med)
+    roof13: renderSprite(PIX.roof, {12:ROOF_COLORS[13]}), // Blue (Police)
+    roof14: renderSprite(PIX.roof, {12:ROOF_COLORS[14]}), // Yellow (Fire)
+    player_down_0: renderSprite(PIX.player_down_0), player_down_1: renderSprite(PIX.player_down_1),
+    player_up_0: renderSprite(PIX.player_up_0), player_up_1: renderSprite(PIX.player_up_1),
+    player_left_0: renderSprite(PIX.player_left_0), player_left_1: renderSprite(PIX.player_left_1),
+    npc1_down_0: renderSprite(PIX.player_down_0, NPC1_COLORS), npc1_down_1: renderSprite(PIX.player_down_1, NPC1_COLORS),
+    npc1_up_0: renderSprite(PIX.player_up_0, NPC1_COLORS), npc1_left_0: renderSprite(PIX.player_left_0, NPC1_COLORS),
+    npc2_down_0: renderSprite(PIX.player_down_0, NPC2_COLORS), npc2_down_1: renderSprite(PIX.player_down_1, NPC2_COLORS),
+    npc2_up_0: renderSprite(PIX.player_up_0, NPC2_COLORS), npc2_left_0: renderSprite(PIX.player_left_0, NPC2_COLORS),
+    icon_quake: renderSprite(PIX.icon_quake), icon_fire: renderSprite(PIX.icon_fire),
+    icon_med: renderSprite(PIX.icon_med), icon_flood: renderSprite(PIX.icon_flood), icon_crime: renderSprite(PIX.icon_crime),
+};
+const ROOF_IMG = {11:IMG.roof11, 12:IMG.roof12, 13:IMG.roof13, 14:IMG.roof14};
+
+/* ---------- 3. MAP DATA (20x15 tiles) ---------- */
+// 0 path | 1 lawn | 2 tall grass (encounter) | 3 tree | 4 water | 5 flower | 6 sign
+// building tiles: floor(v/10) -> 11 CDRRMO / 12 Police / 13 Med / 14 Fire
+const mapData = [
+    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+    [3,1,110,110,110,110,1,1,1,1,1,1,1,130,130,130,130,1,1,3],
+    [3,1,111,111,111,111,1,1,1,5,1,1,1,131,131,131,131,1,1,3],
+    [3,1,112,113,112,112,6,1,1,1,1,1,1,132,133,132,132,1,1,3],
+    [3,1,1,0,5,1,1,1,1,1,1,2,2,2,0,5,1,1,1,3],
+    [3,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,3],
+    [3,1,1,0,1,1,1,1,4,4,4,1,1,1,0,1,1,2,2,3],
+    [3,1,1,0,1,1,1,1,4,4,4,1,1,1,0,1,1,2,2,3],
+    [3,1,1,0,1,1,1,1,4,4,4,1,1,1,0,1,6,1,1,3],
+    [3,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,3],
+    [3,1,120,120,120,120,1,1,1,1,1,1,1,140,140,140,140,1,1,3],
+    [3,1,121,121,121,121,2,2,2,1,1,1,1,141,141,141,141,1,1,3],
+    [3,1,122,123,122,122,2,2,2,5,1,1,1,142,143,142,142,1,1,3],
+    [3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3],
+    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+];
+const MAP_W = mapData[0].length, MAP_H = mapData.length;
+const TILE = 48, VIEW_W = 10, VIEW_H = 10;
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const TILE = 40;
-const COLS = 20; 
-const ROWS = 15; 
+ctx.imageSmoothingEnabled = false;
 
-let gameState = 'title'; 
-let currentMap = 'plaza';
-let day = 1;
-let hp = 100;
-let hasKit = false;
-let hasFood = false;
-let hasRadio = false;
-let familySecured = false;
-let currentDialog = [];
-let dialogIndex = 0;
+/* ---------- 4. GAME STATE & DISASTER DATA ---------- */
+let gameState = 'title'; // title | overworld | dialog | menu | battle
+let muted = false;
+const camera = {x:0, y:0};
+const keys = {};
+const MOVE_DUR = 150;
+const DIRS = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
 
-/* ---------- 3. MAP DEFINITIONS ---------- */
-const maps = {
-    plaza: {
-        name: "Malolos Plaza",
-        color: "#5c7a5c", 
-        data: [
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-            [1,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,1,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,1],
-            [1,0,0,1,1,1,0,0,3,3,0,0,1,1,1,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,0,1],
-            [1,1,1,1,0,0,0,0,3,3,0,0,0,0,1,1,1,1,1,1],
-            [1,1,1,1,0,0,0,0,3,3,0,0,0,0,1,1,1,1,1,1],
-            [2,2,2,2,2,2,2,2,3,3,2,2,2,2,2,2,2,2,2,2],
-            [2,2,2,2,2,2,2,2,3,3,2,2,2,2,2,2,2,2,2,2],
-            [1,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,3,3,0,0,0,0,0,0,0,0,0,1],
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-        ],
-        npcs: [
-            { c:3, r:2, color:"var(--blue)", name:"Kapitan", text:["A super typhoon is coming in 3 days.","You need to prepare immediately!","Go to the market (South) to get supplies.","Then check on your family (East)."] },
-            { c:15, r:5, color:"var(--gold)", name:"Lola", text:["Back in my day, the floods reached the roof.","Don't take this storm lightly, apo."] }
-        ],
-        items: [
-            { c:4, r:12, type:"radio", color:"#555", name:"Crank Radio", desc:"Found an emergency radio!" }
-        ],
-        doors: [
-            { c:9, r:14, toMap:'market', toC:9, toR:1 },
-            { c:9, r:0, toMap:'church', toC:9, toR:13 },
-            { c:19, r:6, toMap:'residential', toC:1, toR:6 }
-        ]
+const player = {
+    tx:9, ty:5, px:9*TILE, py:5*TILE,
+    dir:'down', frame:0, moving:false, moveStart:0,
+    fromX:0, fromY:0, toX:0, toY:0,
+};
+
+const npcs = [
+    { id:'resident', tx:7, ty:5, dir:'down', frame:0, key:'npc1',
+      lines:[
+        "Welcome to Malolos City! Being prepared is key.",
+        "Check the CDRRMO, Police, Fire, and Medical buildings to get their hotlines.",
+        "Watch out in the tall grass... emergencies happen when you least expect them!"
+      ] },
+    { id:'responder', tx:12, ty:9, dir:'down', frame:0, key:'npc2',
+      lines:[
+        "We simulate real disaster situations here.",
+        "Wander into the tall grass to test your Readiness skills.",
+        "Remember to stay calm and make the right choices!"
+      ] },
+];
+
+const SIGN_TEXT = {
+    '3_6': ["CITY SQUARE", "<- CDRRMO (Red Roof)\nPolice Station (Blue Roof) ->"],
+    '8_16': ["SOUTHERN DISTRICT", "<- Bulacan Medical Center (Green)\nFire Station (Yellow) ->"],
+};
+
+// --- Directories (Building Menus) ---
+const DIRECTORIES = {
+    11: {
+        title: "Malolos CDRRMO",
+        hotline: "HOTLINE: (044) 796-0498",
+        items: ["Earthquake: Duck, Cover, and Hold", "Flood: Evacuate to higher ground", "Typhoon: Secure loose objects", "Extreme Heat: Stay hydrated"]
     },
-    market: {
-        name: "Malolos Public Market",
-        color: "#8a8a8a", 
-        data: [
-            [1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,0,0,1],
-            [1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,0,0,1],
-            [1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,0,0,1],
-            [1,0,1,1,0,1,1,0,1,1,0,1,1,0,1,1,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-        ],
-        npcs: [
-            { c:2, r:5, color:"#ff9999", name:"Vendor", text:["We are selling out fast!","Grab your canned goods and water now."] }
-        ],
-        items: [
-            { c:17, r:12, type:"food", color:"#a0522d", name:"Relief Goods", desc:"Secured canned food and bottled water!" },
-            { c:15, r:3, type:"kit", color:"#e0463a", name:"First Aid Kit", desc:"Got bandages, medicines, and a flashlight." }
-        ],
-        doors: [
-            { c:9, r:0, toMap:'plaza', toC:9, toR:13 }
-        ]
+    12: {
+        title: "Bulacan Medical Center",
+        hotline: "HOTLINE: (044) 791-0630",
+        items: ["Heart Attack: Call emergency immediately", "Stroke: Note time and seek help", "Fractures: Immobilize the area", "Burns: Cool with running water", "Choking: Perform Heimlich Maneuver"]
     },
-    church: {
-        name: "Barasoain Church",
-        color: "#c2b280", 
-        data: [
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1],
-            [1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1],
-            [1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1],
-            [1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1],
-            [1,1,1,1,1,1,1,1,1,0,0,1,1,1,1,1,1,1,1,1]
-        ],
-        npcs: [
-            { c:10, r:2, color:"#fff", name:"Rescue Worker", text:["This is the main evacuation center.","If your house is prone to flooding, bring your family here!","Make sure you have your Go-Bag ready."] }
-        ],
-        items: [],
-        doors: [
-            { c:9, r:14, toMap:'plaza', toC:9, toR:1 },
-            { c:10, r:14, toMap:'plaza', toC:9, toR:1 }
-        ]
+    13: {
+        title: "Malolos Police Station",
+        hotline: "HOTLINE: (044) 791-0331",
+        items: ["Robbery Scenario: Do not resist armed suspects", "Theft: Secure valuables in crowds", "Assault: Seek safety and report", "Scam/Cybercrime: Do not share OTPs", "Vandalism: Report suspicious activity"]
     },
-    residential: {
-        name: "Barangay Area",
-        color: "#6b8e23",
-        data: [
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1],
-            [1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,1],
-            [1,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,1],
-            [0,0,0,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,1,1,1,0,0,0,1,1,1,0,0,0,1,1,1,0,1],
-            [1,0,0,1,1,1,0,0,0,1,1,1,0,0,0,1,1,1,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1],
-            [1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1]
-        ],
-        npcs: [
-            { c:16, r:12, color:"#ffcc00", name:"Family Member", text:["You're here! Is the storm really that bad?","Have you gathered our supplies yet?","We need a Radio, First Aid Kit, and Food before we leave!"] }
-        ],
-        items: [],
-        doors: [
-            { c:0, r:6, toMap:'plaza', toC:18, toR:6 }
-        ]
+    14: {
+        title: "Malolos Fire Station",
+        hotline: "HOTLINE: (044) 791-2555",
+        items: ["Electrical Fire: Unplug if safe, don't use water", "Grease Fire: Smother with lid, NEVER water", "LPG Leak: Open windows, do not switch lights", "Arson: Report suspicious fire incidents"]
     }
 };
 
-/* ---------- 4. PLAYER OBJECT ---------- */
-const player = {
-    c: 9, r: 10,
-    color: varValue('--cream'),
-    dir: 'down',
-    moving: false,
-    speed: 0.15,
-    pixelX: 9*TILE, pixelY: 10*TILE,
-    targetX: 9*TILE, targetY: 10*TILE
-};
+// --- Emergencies (Battle Simulations) ---
+let dexFound = new Set();
+let badges = [false,false,false];
 
-function varValue(name) {
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-}
-
-/* ---------- 5. OBJECTIVES ---------- */
-const objectives = [
-    { id:'kit', text:'Find First Aid Kit', check: ()=>hasKit },
-    { id:'food', text:'Stockpile Food', check: ()=>hasFood },
-    { id:'radio', text:'Find Crank Radio', check: ()=>hasRadio },
-    { id:'family', text:'Secure Family (East)', check: ()=>familySecured },
-    { id:'evac', text:'Evacuate to Church (North)', check: ()=>false }
+const EMERGENCIES = [
+    { id:'quake', name:'EARTHQUAKE', icon:'icon_quake',
+      intro: "The ground shakes violently!\nWild EARTHQUAKE appeared!",
+      opt1: {text:"Duck, Cover, Hold", correct:true, msg:"It's super effective!\nYou avoided falling debris and stayed safe."},
+      opt2: {text:"Panic and run", correct:false, msg:"Attack missed!\nYou tripped and were hit by falling debris."} },
+    { id:'flood', name:'FLASH FLOOD', icon:'icon_flood',
+      intro: "Water levels are rising fast!\nWild FLASH FLOOD appeared!",
+      opt1: {text:"Wade in the water", correct:false, msg:"Attack missed!\nYou caught Leptospirosis and put yourself at risk."},
+      opt2: {text:"Evacuate high", correct:true, msg:"It's super effective!\nYou stayed dry and reached the evacuation center."} },
+    { id:'fire', name:'GREASE FIRE', icon:'icon_fire',
+      intro: "A kitchen pan bursts into flames!\nWild GREASE FIRE appeared!",
+      opt1: {text:"Smother with lid", correct:true, msg:"It's super effective!\nThe fire is suppressed safely."},
+      opt2: {text:"Throw water", correct:false, msg:"Attack missed!\nThe fire exploded and spread rapidly!"} },
+    { id:'med', name:'HEART ATTACK', icon:'icon_med',
+      intro: "Someone collapses holding their chest!\nMedical EMERGENCY appeared!",
+      opt1: {text:"Call 044-791-0630", correct:true, msg:"It's super effective!\nHelp is on the way from Bulacan Medical Center."},
+      opt2: {text:"Give them water", correct:false, msg:"Attack missed!\nThey choked, worsening their condition."} },
+    { id:'crime', name:'PICKPOCKET', icon:'icon_crime',
+      intro: "A thief grabs a bag in the crowd!\nWild CRIME appeared!",
+      opt1: {text:"Fight back unarmed", correct:false, msg:"Attack missed!\nYou got injured confronting the suspect."},
+      opt2: {text:"Shout for Help", correct:true, msg:"It's super effective!\nThe thief dropped the bag and fled."} },
 ];
 
-function updateObjectives() {
-    const cont = document.getElementById('obj-container');
-    cont.innerHTML = '<div style="color:var(--gold); margin-bottom:10px;">MISSION:</div>';
-    let allReady = true;
+/* ---------- 5. SOUND (Web Audio) ---------- */
+let audioCtx = null;
+function ensureAudio(){
+    if(!audioCtx){
+        try{ audioCtx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){}
+    }
+    if(audioCtx && audioCtx.state==='suspended') audioCtx.resume();
+}
+function beep(freq,dur,type,vol,delay){
+    if(muted || !audioCtx) return;
+    type=type||'square'; vol=vol||0.045; delay=delay||0;
+    const t0=audioCtx.currentTime+delay;
+    const osc=audioCtx.createOscillator();
+    const gain=audioCtx.createGain();
+    osc.type=type; osc.frequency.value=freq;
+    gain.gain.setValueAtTime(vol,t0);
+    gain.gain.exponentialRampToValueAtTime(0.0001,t0+dur);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(t0); osc.stop(t0+dur+0.02);
+}
+function sfxStep(){ beep(180,0.03,'square',0.018); }
+function sfxBump(){ beep(110,0.05,'square',0.03); }
+function sfxSelect(){ beep(880,0.045,'square',0.035); }
+function sfxConfirm(){ beep(660,0.05,'square',0.045); beep(990,0.06,'square',0.04,0.05); }
+function sfxDoor(){ beep(330,0.05,'triangle',0.05); beep(440,0.08,'triangle',0.05,0.06); beep(550,0.1,'triangle',0.05,0.12); }
+function sfxEncounter(){ beep(440,0.08,'square',0.045); beep(330,0.08,'square',0.045,0.08); beep(550,0.08,'square',0.045,0.16); beep(660,0.14,'square',0.045,0.24); }
+function sfxBadge(){ beep(523,0.09,'square',0.05); beep(659,0.09,'square',0.05,0.09); beep(784,0.09,'square',0.05,0.18); beep(1046,0.18,'square',0.05,0.27); }
+function sfxBlip(){ beep(1300,0.012,'square',0.012); }
+
+/* ---------- 6. SPRITE / DRAW HELPERS ---------- */
+function frameImg(prefix, dir, frame){
+    let d = dir==='right' ? 'left' : dir;
+    let key = prefix+'_'+d+'_'+frame;
+    if(IMG[key]) return IMG[key];
+    key = prefix+'_'+d+'_0';
+    if(IMG[key]) return IMG[key];
+    return IMG[prefix+'_down_0'];
+}
+function drawChar(img, dx, dy, flip){
+    if(flip){
+        ctx.save();
+        ctx.translate(dx+TILE, dy);
+        ctx.scale(-1,1);
+        ctx.drawImage(img,0,0,16,16,0,0,TILE,TILE);
+        ctx.restore();
+    } else {
+        ctx.drawImage(img,0,0,16,16,dx,dy,TILE,TILE);
+    }
+}
+function tileImage(val, waterFrame){
+    if(val===0) return IMG.path;
+    if(val===1) return IMG.lawn;
+    if(val===2) return IMG.tallgrass;
+    if(val===3) return IMG.tree;
+    if(val===4) return waterFrame ? IMG.water2 : IMG.water1;
+    if(val===5) return IMG.flower;
+    if(val===6) return IMG.sign;
+    if(val>=110){
+        const shape=val%10, bld=Math.floor(val/10);
+        if(shape===0) return ROOF_IMG[bld];
+        if(shape===1) return IMG.wallwindow;
+        if(shape===2) return IMG.wallplain;
+        if(shape===3) return IMG.door;
+    }
+    return IMG.lawn;
+}
+
+/* ---------- 7. CAMERA / RENDER ---------- */
+function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
+function updateCamera(){
+    const vw=VIEW_W*TILE, vh=VIEW_H*TILE;
+    camera.x = clamp(player.px + TILE/2 - vw/2, 0, MAP_W*TILE - vw);
+    camera.y = clamp(player.py + TILE/2 - vh/2, 0, MAP_H*TILE - vh);
+}
+let waterFrame = 0, waterTimer = 0, npcTimer = 0;
+
+function render(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    const startCol = Math.floor(camera.x/TILE), startRow = Math.floor(camera.y/TILE);
+    const endCol = Math.ceil((camera.x+VIEW_W*TILE)/TILE), endRow = Math.ceil((camera.y+VIEW_H*TILE)/TILE);
+    for(let ty=startRow; ty<endRow; ty++){
+        for(let tx=startCol; tx<endCol; tx++){
+            if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) continue;
+            const img = tileImage(mapData[ty][tx], waterFrame);
+            ctx.drawImage(img,0,0,16,16, tx*TILE-camera.x, ty*TILE-camera.y, TILE, TILE);
+        }
+    }
+    for(const npc of npcs){
+        const img = frameImg(npc.key, npc.dir, npc.frame);
+        drawChar(img, npc.tx*TILE-camera.x, npc.ty*TILE-camera.y, npc.dir==='right');
+    }
+    const pimg = frameImg('player', player.dir, player.frame);
+    drawChar(pimg, player.px-camera.x, player.py-camera.y, player.dir==='right');
+}
+
+/* ---------- 8. MOVEMENT / INTERACTION ---------- */
+function walkableTile(tx,ty){
+    if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) return false;
+    const v = mapData[ty][tx];
+    return v===0||v===1||v===2||v===5;
+}
+function npcAt(tx,ty){ return npcs.find(n=>n.tx===tx && n.ty===ty); }
+
+function onArrive(){
+    const v = mapData[player.ty][player.tx];
+    if(v===2 && Math.random()<0.15) triggerBattle();
+}
+function handleBlocked(nx,ny,npc){
+    if(npc){
+        const opp = {up:'down',down:'up',left:'right',right:'left'};
+        npc.dir = opp[player.dir];
+        sfxSelect();
+        showDialogPages(npc.lines.slice());
+        return;
+    }
+    if(nx<0||ny<0||nx>=MAP_W||ny>=MAP_H){ sfxBump(); return; }
+    const v = mapData[ny][nx];
+    if(v===6){
+        sfxSelect();
+        showDialogPages((SIGN_TEXT[ny+'_'+nx] || ["A sign."]).slice());
+        return;
+    }
+    if(v>=110){
+        const shape=v%10, bld=Math.floor(v/10);
+        if(shape===3){ handleDoor(bld); return; }
+    }
+    sfxBump();
+}
+function handleDoor(bld){
+    sfxDoor();
+    openDirectory(bld);
+}
+function attemptMove(dir){
+    if(gameState!=='overworld' || player.moving) return;
+    player.dir = dir;
+    const [dx,dy] = DIRS[dir];
+    const nx = player.tx+dx, ny = player.ty+dy;
+    const blockingNpc = npcAt(nx,ny);
+    if(!blockingNpc && walkableTile(nx,ny)){
+        player.fromX=player.px; player.fromY=player.py;
+        player.toX=nx*TILE; player.toY=ny*TILE;
+        player.tx=nx; player.ty=ny;
+        player.moving=true; player.moveStart=performance.now();
+        sfxStep();
+    } else {
+        handleBlocked(nx,ny,blockingNpc);
+    }
+}
+function openDirectory(bldId){
+    sfxSelect();
+    const data = DIRECTORIES[bldId];
+    if(!data) return;
+    document.getElementById('dir-title').textContent = data.title;
+    document.getElementById('dir-hotline').textContent = data.hotline;
+    const ul = document.getElementById('dir-list');
+    ul.innerHTML = '';
+    data.items.forEach(item => {
+        const li = document.createElement('li');
+        li.textContent = item;
+        ul.appendChild(li);
+    });
+    gameState = 'menu';
+    document.getElementById('directory-screen').classList.add('active');
+}
+function closeDirectory(){
+    sfxSelect();
+    document.getElementById('directory-screen').classList.remove('active');
+    gameState='overworld';
+}
+
+/* ---------- 9. DIALOG SYSTEM (typewriter) ---------- */
+const dialogEl = document.getElementById('dialog');
+const dialogTextEl = document.getElementById('dialog-text');
+const dlg = { pages:[], index:0, typing:false, timer:null, returnState:'overworld' };
+
+function showDialogPages(pages){
+    dlg.pages = pages;
+    dlg.index = 0;
+    dlg.returnState = (gameState==='overworld') ? 'overworld' : gameState;
+    gameState = 'dialog';
+    dialogEl.style.display = 'block';
+    startPage();
+}
+function startPage(){
+    dlg.typing = true;
+    dialogEl.classList.remove('show-arrow');
+    dialogTextEl.textContent = '';
+    clearInterval(dlg.timer);
+    let i = 0;
+    const text = dlg.pages[dlg.index];
+    dlg.timer = setInterval(()=>{
+        i++;
+        dialogTextEl.textContent = text.slice(0,i);
+        if(i % 4 === 0) sfxBlip();
+        if(i >= text.length){
+            clearInterval(dlg.timer);
+            dlg.typing = false;
+            dialogEl.classList.add('show-arrow');
+        }
+    },28);
+}
+function advanceDialog(){
+    if(dlg.typing){
+        clearInterval(dlg.timer);
+        dialogTextEl.textContent = dlg.pages[dlg.index];
+        dlg.typing = false;
+        dialogEl.classList.add('show-arrow');
+        return;
+    }
+    dlg.index++;
+    if(dlg.index >= dlg.pages.length){
+        dialogEl.style.display = 'none';
+        dialogEl.classList.remove('show-arrow');
+        gameState = dlg.returnState;
+    } else {
+        startPage();
+    }
+}
+dialogEl.addEventListener('click', ()=>{ if(gameState==='dialog'){ ensureAudio(); advanceDialog(); } });
+
+/* ---------- 10. UPDATE LOOP ---------- */
+let lastTime = 0;
+function update(ts){
+    const dt = ts - lastTime; lastTime = ts;
+
+    waterTimer += dt;
+    if(waterTimer > 600){ waterTimer = 0; waterFrame = waterFrame ? 0 : 1; }
+
+    npcTimer += dt;
+    if(npcTimer > 700){ npcTimer = 0; npcs.forEach(n=>{ n.frame = n.frame ? 0 : 1; }); }
+
+    if(gameState === 'overworld'){
+        if(player.moving){
+            let t = (ts - player.moveStart) / MOVE_DUR;
+            if(t >= 1){
+                t = 1; player.moving = false;
+                player.px = player.toX; player.py = player.toY;
+                onArrive();
+            } else {
+                player.px = player.fromX + (player.toX-player.fromX)*t;
+                player.py = player.fromY + (player.toY-player.fromY)*t;
+            }
+            player.frame = Math.floor(ts/110)%2;
+        } else {
+            player.frame = 0;
+            let dir = null;
+            if(keys['ArrowUp']||keys['w']||keys['W']) dir='up';
+            else if(keys['ArrowDown']||keys['s']||keys['S']) dir='down';
+            else if(keys['ArrowLeft']||keys['a']||keys['A']) dir='left';
+            else if(keys['ArrowRight']||keys['d']||keys['D']) dir='right';
+            if(dir) attemptMove(dir);
+        }
+        updateCamera();
+    }
+}
+function gameLoop(ts){
+    update(ts);
+    render();
+    requestAnimationFrame(gameLoop);
+}
+
+/* ---------- 11. TITLE SCREEN ---------- */
+function startGame(){
+    ensureAudio();
+    sfxConfirm();
+    document.getElementById('startup').classList.remove('active');
+    gameState = 'overworld';
+    updateCamera();
+    showDialogPages([
+        "Disaster Readiness Guide Active.",
+        "Explore Malolos City and visit the local directories for essential hotlines.",
+        "Walking in tall grass will simulate emergency scenarios to test your response!",
+    ]);
+}
+document.getElementById('start-btn').addEventListener('click', startGame);
+
+const titleSpriteCanvas = document.getElementById('title-sprite');
+const titleCtx = titleSpriteCanvas.getContext('2d');
+titleCtx.imageSmoothingEnabled = false;
+let titleFrame = 0;
+setInterval(()=>{
+    titleFrame = titleFrame ? 0 : 1;
+    titleCtx.clearRect(0,0,48,48);
+    titleCtx.drawImage(IMG['player_down_'+titleFrame],0,0,16,16,0,0,48,48);
+},420);
+
+/* ---------- 12. FADE TRANSITION ---------- */
+const fadeEl = document.getElementById('fade');
+function fadeTransition(cb){
+    fadeEl.classList.add('show');
+    setTimeout(()=>{
+        cb();
+        setTimeout(()=>fadeEl.classList.remove('show'), 80);
+    }, 240);
+}
+
+/* ---------- 13. BATTLE SYSTEM (Emergency Simulations) ---------- */
+let curBattle = null;
+const battleTextEl = document.getElementById('battle-text');
+const oppNameEl = document.getElementById('opp-name');
+const oppHpEl = document.getElementById('opp-hp');
+const plyHpEl = document.getElementById('ply-hp');
+const btnAction1 = document.getElementById('btn-action1');
+const btnAction2 = document.getElementById('btn-action2');
+
+function typeText(el, text, onDone){
+    let i = 0;
+    el.textContent = '';
+    clearInterval(el._timer);
+    el._timer = setInterval(()=>{
+        i++;
+        el.textContent = text.slice(0,i);
+        if(i % 4 === 0) sfxBlip();
+        if(i >= text.length){
+            clearInterval(el._timer);
+            if(onDone) onDone();
+        }
+    }, 24);
+}
+function drawBattleSprite(canvasId, img, scale){
+    const c = document.getElementById(canvasId);
+    c.width = 16*scale; c.height = 16*scale;
+    const cx = c.getContext('2d');
+    cx.imageSmoothingEnabled = false;
+    cx.clearRect(0,0,c.width,c.height);
+    cx.drawImage(img,0,0,16,16,0,0,c.width,c.height);
+}
+function setHpUI(el, pct){
+    el.style.width = pct+'%';
+    el.style.background = pct>50 ? 'var(--hp-green)' : pct>20 ? 'var(--hp-yellow)' : 'var(--hp-red)';
+}
+function showBattleActions(show){
+    document.getElementById('battle-actions').style.visibility = show ? 'visible' : 'hidden';
+}
+
+function triggerBattle(){
+    sfxEncounter();
+    const scIdx = Math.floor(Math.random() * EMERGENCIES.length);
+    curBattle = { data: EMERGENCIES[scIdx], phase: 'intro', id: EMERGENCIES[scIdx].id };
     
-    objectives.forEach(o => {
-        if(o.id === 'evac' && !allReady) return; 
-        const done = o.check();
-        if(!done && o.id !== 'evac') allReady = false;
+    fadeTransition(()=>{
+        gameState = 'battle';
+        document.getElementById('battle-screen').classList.add('active');
+        setHpUI(plyHpEl, 100);
+        setHpUI(oppHpEl, 100);
         
-        let cls = 'obj-item';
-        if(done) cls += ' done';
-        else if(o.id === 'evac') cls += ' active';
+        oppNameEl.textContent = curBattle.data.name;
+        drawBattleSprite('opp-sprite', IMG[curBattle.data.icon], 4);
+        drawBattleSprite('ply-sprite', IMG.player_up_0, 6);
         
-        cont.innerHTML += `<div class="${cls}">- ${o.text}</div>`;
+        // Randomize button order
+        if(Math.random()>0.5){
+            btnAction1.textContent = '► '+curBattle.data.opt1.text; btnAction1._opt = curBattle.data.opt1;
+            btnAction2.textContent = '► '+curBattle.data.opt2.text; btnAction2._opt = curBattle.data.opt2;
+        } else {
+            btnAction1.textContent = '► '+curBattle.data.opt2.text; btnAction1._opt = curBattle.data.opt2;
+            btnAction2.textContent = '► '+curBattle.data.opt1.text; btnAction2._opt = curBattle.data.opt1;
+        }
+        
+        showBattleActions(false);
+        typeText(battleTextEl, curBattle.data.intro, ()=>{ curBattle.phase='choice'; showBattleActions(true); });
     });
 }
 
-/* ---------- 6. INPUT HANDLING ---------- */
-const keys = {};
+function awardReadinessBadge(){
+    let count = dexFound.size;
+    let earnedIdx = -1;
+    if(count >= 1 && !badges[0]) earnedIdx = 0;
+    if(count >= 3 && !badges[1]) earnedIdx = 1;
+    if(count >= 5 && !badges[2]) earnedIdx = 2;
+    
+    if(earnedIdx >= 0){
+        badges[earnedIdx] = true;
+        const slot = document.getElementById('badge-'+earnedIdx);
+        slot.classList.add('earned');
+        const c = document.createElement('canvas');
+        c.width=12; c.height=12;
+        const cx = c.getContext('2d'); cx.imageSmoothingEnabled=false;
+        cx.fillStyle = '#f7d51d';
+        cx.fillRect(2,2,8,8); // Generic simple badge icon block
+        slot.innerHTML=''; slot.appendChild(c);
+        sfxBadge();
+    }
+}
+
+function handleActionClick(btn){
+    ensureAudio();
+    if(curBattle.phase==='cleared'){
+        sfxSelect();
+        endBattle();
+        return;
+    }
+    if(curBattle.phase!=='choice') return;
+    sfxSelect();
+    showBattleActions(false);
+    curBattle.phase='typing';
+    
+    const opt = btn._opt;
+    
+    typeText(battleTextEl, "You used: " + opt.text.toUpperCase() + "...\n" + opt.msg, ()=>{
+        if(opt.correct){
+            setHpUI(oppHpEl, 0);
+            dexFound.add(curBattle.id);
+            document.getElementById('dex').textContent = 'SURVIVOR '+dexFound.size+'/'+EMERGENCIES.length;
+            setTimeout(()=>{
+                awardReadinessBadge();
+                curBattle.phase = 'cleared';
+                btnAction1.textContent = '► RETURN TO TOWN';
+                btnAction2.style.display = 'none';
+                showBattleActions(true);
+            }, 600);
+        } else {
+            setHpUI(plyHpEl, 0);
+            sfxBump();
+            setTimeout(()=>{
+                curBattle.phase = 'cleared';
+                btnAction1.textContent = '► FLEE TO MEDICAL CENTER';
+                btnAction2.style.display = 'none';
+                showBattleActions(true);
+            }, 600);
+        }
+    });
+}
+
+function endBattle(){
+    btnAction2.style.display = 'block'; // reset
+    document.getElementById('battle-screen').classList.remove('active');
+    fadeTransition(()=>{ gameState='overworld'; });
+}
+btnAction1.addEventListener('click', ()=>handleActionClick(btnAction1));
+btnAction2.addEventListener('click', ()=>handleActionClick(btnAction2));
+
+/* ---------- 14. INPUT ---------- */
 window.addEventListener('keydown', (e)=>{
-    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Enter',' '].includes(e.key)) e.preventDefault();
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
     keys[e.key] = true;
     if(gameState==='title' && (e.key==='Enter'||e.key===' ')){ startGame(); return; }
     if(gameState==='dialog' && (e.key==='Enter'||e.key===' ')){ ensureAudio(); advanceDialog(); return; }
 });
 window.addEventListener('keyup', (e)=>{ keys[e.key] = false; });
 
-/* ---------- 7. MOVEMENT LOGIC ---------- */
-function attemptMove(dir) {
-    if(gameState !== 'explore' || player.moving) return;
-    let nc = player.c; let nr = player.r;
-    if(dir==='up') nr--; if(dir==='down') nr++;
-    if(dir==='left') nc--; if(dir==='right') nc++;
-    
-    player.dir = dir;
-    
-    if(nc<0 || nc>=COLS || nr<0 || nr>=ROWS) return;
-    
-    const map = maps[currentMap];
-    const tile = map.data[nr][nc];
-    if(tile === 1 || tile === 2) return; 
-    
-    if(map.npcs.some(n => n.c === nc && n.r === nr)) return;
-    
-    player.c = nc; player.r = nr;
-    player.targetX = nc * TILE;
-    player.targetY = nr * TILE;
-    player.moving = true;
-    sfx.step();
-}
-
-/* ---------- 8. INTERACTION ---------- */
-function interact() {
-    if(gameState !== 'explore' || player.moving) return;
-    
-    let tc = player.c; let tr = player.r;
-    if(player.dir==='up') tr--; if(player.dir==='down') tr++;
-    if(player.dir==='left') tc--; if(player.dir==='right') tc++;
-    
-    const map = maps[currentMap];
-    
-    const npc = map.npcs.find(n => n.c === tc && n.r === tr);
-    if(npc) {
-        if(npc.name === 'Family Member') {
-            if(hasKit && hasFood && hasRadio) {
-                npc.text = ["Great job! You have everything.","Let's evacuate to Barasoain Church now!"];
-                familySecured = true;
-                updateObjectives();
-                sfx.pickup();
-            } else {
-                npc.text = ["We can't leave yet!","We still need the First Aid, Food, and Radio!"];
-            }
-        }
-        startDialog(npc.name, npc.text);
-        return;
-    }
-    
-    const itemIdx = map.items.findIndex(i => i.c === tc && i.r === tr);
-    if(itemIdx > -1) {
-        const itm = map.items[itemIdx];
-        if(itm.type === 'kit') hasKit = true;
-        if(itm.type === 'food') hasFood = true;
-        if(itm.type === 'radio') hasRadio = true;
-        
-        map.items.splice(itemIdx, 1);
-        startDialog("SYSTEM", [itm.desc]);
-        sfx.pickup();
-        updateObjectives();
-        return;
-    }
-}
-
-/* ---------- 9. DIALOG SYSTEM ---------- */
-function startDialog(speaker, lines) {
-    gameState = 'dialog';
-    currentDialog = lines;
-    dialogIndex = 0;
-    document.getElementById('dialog-speaker').textContent = speaker;
-    document.getElementById('dialog-box').style.display = 'flex';
-    sfx.talk();
-    renderDialogText();
-}
-
-function renderDialogText() {
-    document.getElementById('dialog-text').textContent = currentDialog[dialogIndex];
-}
-
-function advanceDialog() {
-    dialogIndex++;
-    if(dialogIndex >= currentDialog.length) {
-        document.getElementById('dialog-box').style.display = 'none';
-        gameState = 'explore';
-    } else {
-        sfx.talk();
-        renderDialogText();
-    }
-}
-
-/* ---------- 10. GAME LOOP & RENDERING ---------- */
-function update() {
-    if(gameState === 'explore') {
-        if(keys['ArrowUp']) attemptMove('up');
-        else if(keys['ArrowDown']) attemptMove('down');
-        else if(keys['ArrowLeft']) attemptMove('left');
-        else if(keys['ArrowRight']) attemptMove('right');
-        
-        if(keys[' ']) { keys[' '] = false; interact(); }
-        if(keys['Enter']) { keys['Enter'] = false; interact(); }
-        
-        if(player.moving) {
-            const dx = player.targetX - player.pixelX;
-            const dy = player.targetY - player.pixelY;
-            const dist = Math.sqrt(dx*dx + dy*dy);
-            
-            if(dist < 2) {
-                player.pixelX = player.targetX;
-                player.pixelY = player.targetY;
-                player.moving = false;
-                checkTriggers();
-            } else {
-                player.pixelX += dx * player.speed;
-                player.pixelY += dy * player.speed;
-            }
-        }
-    }
-}
-
-function checkTriggers() {
-    const map = maps[currentMap];
-    
-    const door = map.doors.find(d => d.c === player.c && d.r === player.r);
-    if(door) {
-        currentMap = door.toMap;
-        player.c = door.toC; player.r = door.toR;
-        player.pixelX = player.targetX = player.c * TILE;
-        player.pixelY = player.targetY = player.r * TILE;
-        showLocationBanner(maps[currentMap].name);
-        
-        if(Math.random() > 0.5 && day < 3) {
-            day++;
-            document.getElementById('day-text').textContent = day;
-            updateHP(-10);
-            startDialog("SYSTEM", [`It is now Day ${day}. The sky grows darker...`]);
-        }
-        
-        if(currentMap === 'church' && familySecured) {
-            winGame();
-        }
-    }
-}
-
-function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    
-    if(gameState === 'title' || gameState === 'end') return;
-    
-    const map = maps[currentMap];
-    
-    for(let r=0; r<ROWS; r++) {
-        for(let c=0; c<COLS; c++) {
-            const tile = map.data[r][c];
-            ctx.fillStyle = map.color;
-            if(tile === 1) ctx.fillStyle = "#2c3e50"; 
-            if(tile === 2) ctx.fillStyle = "#2980b9"; 
-            if(tile === 3) ctx.fillStyle = "#7f8c8d"; 
-            
-            ctx.fillRect(c*TILE, r*TILE, TILE, TILE);
-            ctx.strokeStyle = "rgba(0,0,0,0.1)";
-            ctx.strokeRect(c*TILE, r*TILE, TILE, TILE);
-        }
-    }
-    
-    map.items.forEach(itm => {
-        ctx.fillStyle = itm.color;
-        ctx.beginPath();
-        ctx.arc(itm.c*TILE + TILE/2, itm.r*TILE + TILE/2, 10, 0, Math.PI*2);
-        ctx.fill();
-        ctx.strokeStyle = "#fff";
-        ctx.stroke();
-    });
-    
-    map.npcs.forEach(npc => {
-        ctx.fillStyle = npc.color;
-        ctx.fillRect(npc.c*TILE + 4, npc.r*TILE + 4, TILE-8, TILE-8);
-    });
-    
-    ctx.fillStyle = player.color;
-    ctx.fillRect(player.pixelX + 4, player.pixelY + 4, TILE-8, TILE-8);
-    
-    ctx.fillStyle = "#000";
-    let ex = player.pixelX + TILE/2; let ey = player.pixelY + TILE/2;
-    if(player.dir === 'up') { ctx.fillRect(ex-8, ey-10, 4, 4); ctx.fillRect(ex+4, ey-10, 4, 4); }
-    if(player.dir === 'down') { ctx.fillRect(ex-8, ey+6, 4, 4); ctx.fillRect(ex+4, ey+6, 4, 4); }
-    if(player.dir === 'left') { ctx.fillRect(ex-10, ey-4, 4, 4); }
-    if(player.dir === 'right') { ctx.fillRect(ex+6, ey-4, 4, 4); }
-}
-
-function loop() {
-    update();
-    draw();
-    requestAnimationFrame(loop);
-}
-
-/* ---------- 11. UI & HUD ---------- */
-function updateHP(amt) {
-    hp += amt;
-    if(hp > 100) hp = 100;
-    if(hp < 0) hp = 0;
-    
-    document.getElementById('hp-text').textContent = hp;
-    const fill = document.getElementById('hp-fill');
-    fill.style.width = hp + '%';
-    
-    if(hp > 50) fill.style.background = varValue('--hp-green');
-    else if(hp > 20) fill.style.background = varValue('--hp-yellow');
-    else fill.style.background = varValue('--hp-red');
-    
-    if(amt < 0) sfx.hurt();
-    if(hp === 0) loseGame();
-}
-
-function showLocationBanner(text) {
-    const banner = document.getElementById('location-banner');
-    banner.textContent = text;
-    banner.style.opacity = 1;
-    setTimeout(() => { banner.style.opacity = 0; }, 3000);
-}
-
-/* ---------- 12. GAME FLOW ---------- */
-function startGame() {
-    document.getElementById('title-screen').style.display = 'none';
-    gameState = 'explore';
-    ensureAudio();
-    updateObjectives();
-    showLocationBanner(maps[currentMap].name);
-}
-
-function winGame() {
-    gameState = 'end';
-    sfx.win();
-    document.getElementById('game-over').style.display = 'flex';
-    document.getElementById('end-title').textContent = "MISSION ACCOMPLISHED";
-    document.getElementById('end-title').style.color = varValue('--teal');
-    document.getElementById('end-desc').textContent = "You successfully gathered all supplies and evacuated your family to Barasoain Church before the super typhoon hit. You are safe!";
-}
-
-function loseGame() {
-    gameState = 'end';
-    document.getElementById('game-over').style.display = 'flex';
-    document.getElementById('end-title').textContent = "GAME OVER";
-    document.getElementById('end-title').style.color = varValue('--ink');
-    document.getElementById('end-desc').textContent = "You ran out of energy before completing your preparations. Remember: Early preparation saves lives.";
-}
-
-/* ---------- 13. SOUND TOGGLE & TOUCH CONTROLS ---------- */
+/* ---------- 15. SOUND TOGGLE & TOUCH CONTROLS ---------- */
 const muteBtn = document.getElementById('mute-btn');
 muteBtn.addEventListener('click', ()=>{
     ensureAudio();
     muted = !muted;
     muteBtn.textContent = muted ? '♪ SOUND: OFF' : '♪ SOUND: ON';
 });
-
 document.querySelectorAll('.dpad button[data-key]').forEach(btn=>{
     const k = btn.dataset.key;
     const dir = {ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'}[k];
-    
     const on = (e)=>{ e.preventDefault(); ensureAudio(); keys[k]=true; attemptMove(dir); };
     const off = (e)=>{ e.preventDefault(); keys[k]=false; };
-    
-    btn.addEventListener('touchstart', on, {passive: false}); 
-    btn.addEventListener('touchend', off, {passive: false}); 
-    btn.addEventListener('touchcancel', off, {passive: false});
-    btn.addEventListener('mousedown', on); 
-    btn.addEventListener('mouseup', off); 
-    btn.addEventListener('mouseleave', off);
+    btn.addEventListener('touchstart', on); btn.addEventListener('touchend', off); btn.addEventListener('touchcancel', off);
+    btn.addEventListener('mousedown', on); btn.addEventListener('mouseup', off); btn.addEventListener('mouseleave', off);
+});
+document.getElementById('a-btn').addEventListener('click', ()=>{
+    ensureAudio();
+    if(gameState==='title') startGame();
+    else if(gameState==='dialog') advanceDialog();
 });
 
-document.getElementById('a-btn').addEventListener('touchstart', (e)=>{ e.preventDefault(); keys['Enter']=true; if(gameState==='dialog'){ advanceDialog(); return; } interact(); }, {passive:false});
-document.getElementById('a-btn').addEventListener('touchend', (e)=>{ e.preventDefault(); keys['Enter']=false; }, {passive:false});
-document.getElementById('a-btn').addEventListener('mousedown', ()=>{ keys['Enter']=true; if(gameState==='dialog'){ advanceDialog(); return; } interact(); });
-document.getElementById('a-btn').addEventListener('mouseup', ()=>{ keys['Enter']=false; });
-
-/* ---------- 14. PERFECT VIEWPORT SCALING ---------- */
-function scaleGame() {
-    const wrapper = document.getElementById('game-wrapper');
-    const padding = 20; 
-    
-    // The fixed dimensions of the wrapper
-    const targetWidth = 800;
-    const targetHeight = 750; // 600 for canvas + 150 for controls
-    
-    // Calculate how much we need to scale down to fit the current screen
-    const scaleX = (window.innerWidth - padding) / targetWidth;
-    const scaleY = (window.innerHeight - padding) / targetHeight;
-    
-    // Use whichever scale is smaller to ensure neither width nor height is cropped
-    let scale = Math.min(scaleX, scaleY);
-    
-    // Optional: Don't let it scale up beyond 1.2x on very large desktop screens
-    if (scale > 1.2) scale = 1.2;
-    
-    // Apply the mathematical scale directly to the rigid container
-    wrapper.style.transform = `scale(${scale})`;
-}
-
-// Ensure the game resizes correctly on window load, resize, or device rotation
-window.addEventListener('resize', scaleGame);
-window.addEventListener('orientationchange', () => setTimeout(scaleGame, 100));
-
-// Kick off the scaling and the game loop
-scaleGame();
-requestAnimationFrame(loop);
-
+/* ---------- 16. INIT ---------- */
+updateCamera();
+requestAnimationFrame(gameLoop);
 </script>
 </body>
 </html>
