@@ -74,9 +74,10 @@
   }
 
   /* ===== Overlays ===== */
-  .overlay{
-    position:absolute; inset:0; display:none; flex-direction:column;
-    align-items:center; justify-content:center; z-index:100; padding:22px; box-sizing:border-box;
+  ..overlay {
+    position: absolute; inset: 0; display: none; flex-direction: column;
+    align-items: center; justify-content: center; z-index: 100; 
+    padding: 10px; box-sizing: border-box; overflow: hidden;
   }
   .overlay.active{ display:flex; }
 
@@ -133,9 +134,10 @@
   #dialog.show-arrow .arrow{ display:block; }
 
   /* ===== Generic menu box (Directories) ===== */
-  .menu-box{
-    background:var(--cream); border:4px solid var(--ink); border-radius:8px;
-    padding:18px 22px; width:92%; max-width:410px; color:var(--ink); box-shadow:0 0 0 2px var(--ink) inset;
+  .menu-box {
+    background: var(--cream); border: 4px solid var(--ink); border-radius: 8px;
+    padding: 18px 22px; width: 92%; max-width: 410px; color: var(--ink); box-shadow: 0 0 0 2px var(--ink) inset;
+    max-height: 85vh; overflow-y: auto;
   }
   .menu-box h3{ font-size:13px; margin:0 0 6px; letter-spacing:1px; line-height:1.4; }
   .menu-box p{ font-size:9px; line-height:1.6; margin:0 0 14px; color:var(--red); }
@@ -147,9 +149,10 @@
   .menu-btn:hover{ background:#eee; }
 
   /* ===== Battle screen ===== */
-  #battle-screen{
-    background:linear-gradient(180deg,#bfe6c1 0%, #bfe6c1 58%, #8a5a2c 58%, #8a5a2c 100%);
-    padding:0; justify-content:flex-end;
+  #battle-screen {
+    background: linear-gradient(180deg, #bfe6c1 0%, #bfe6c1 58%, #8a5a2c 58%, #8a5a2c 100%);
+    padding: 0; justify-content: flex-end;
+    position: absolute; inset: 0;
   }
   .battle-field{ position:absolute; top:0; left:0; right:0; bottom:118px; }
   .platform{ position:absolute; width:120px; height:30px; background:rgba(0,0,0,0.18); border-radius:50%; }
@@ -168,9 +171,14 @@
   .hp-label{ font-size:8px; color:var(--blue); }
   .hp-bar-bg{ flex:1; height:6px; background:#999; border:1px solid var(--ink); }
   .hp-bar{ height:100%; background:var(--hp-green); width:100%; transition:width .5s ease; }
-  #battle-msgbox{
-    position:absolute; left:0; right:0; bottom:0; height:118px;
-    background:var(--cream); border-top:4px solid var(--ink); padding:12px 16px; box-sizing:border-box; color:var(--ink);
+#battle-msgbox {
+    width: 100%; 
+    min-height: 30%; 
+    background: var(--cream); 
+    border-top: 4px solid var(--ink); 
+    padding: 12px 16px; 
+    box-sizing: border-box; 
+    color: var(--ink);
   }
   #battle-text{ font-size:9px; line-height:1.6; min-height:40px; white-space:pre-line; }
   .battle-actions{ display:flex; flex-direction:column; gap:6px; margin-top:8px; }
