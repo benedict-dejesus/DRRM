@@ -1,9 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="fil">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Malolos City — Disaster Readiness Guide</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#14141f">
+<meta name="description" content="Bayani ng Malolos — laro sa kahandaan sa sakuna para sa mga kabataang Maloleño. Gawa para sa CDRRMO Malolos at mga paaralan.">
+<title>Bayani ng Malolos — Laro sa Kahandaan sa Sakuna</title>
 <link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap" rel="stylesheet">
 <style>
   :root{
@@ -16,14 +18,17 @@
     --hp-green:#6abe30;
     --hp-yellow:#f7d51d;
     --hp-red:#e0463a;
+    --font:'Press Start 2P', 'Courier New', monospace;
+    --fade-ms:250ms;
   }
   *{ box-sizing:border-box; }
   html,body{ margin:0; }
   body{
     min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center;
     background: radial-gradient(circle at 50% -10%, #38395c 0%, #14141f 65%);
-    font-family:'Press Start 2P', monospace; color:var(--cream); user-select:none;
-    padding:20px; gap:10px;
+    font-family:var(--font); color:var(--cream); user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    padding:16px; gap:10px;
   }
   /* ===== Console shell ===== */
   .console{
@@ -40,181 +45,267 @@
   .console-label{
     position:absolute; top:13px; left:26px; font-size:8px; letter-spacing:2px; color:#9a9ac4;
   }
+  /* stage = responsive wrapper; game-container keeps its native 480x480 coordinate space */
+  #stage{ position:relative; width:480px; height:480px; overflow:hidden; border-radius:6px; }
   #game-container{
     position:relative; width:480px; height:480px; background:#000; overflow:hidden;
-    border-radius:6px;
+    border-radius:6px; transform-origin:top left;
     box-shadow: inset 0 0 0 4px #0d0d1a, inset 0 0 0 8px #1a1a2e, inset 0 0 22px rgba(0,0,0,0.6);
   }
   canvas{ display:block; image-rendering:pixelated; image-rendering:crisp-edges; }
+  #fx{ position:absolute; inset:0; z-index:155; pointer-events:none; }
 
   /* ===== HUD ===== */
   #hud{
     position:absolute; top:8px; left:8px; z-index:40;
-    background:rgba(20,20,36,0.82); border:2px solid var(--cream); border-radius:4px;
+    background:rgba(20,20,36,0.88); border:2px solid var(--cream); border-radius:4px;
     padding:5px 8px; font-size:8px; display:flex; align-items:center; gap:8px; line-height:1.6;
   }
   #hud .badges{ display:flex; gap:3px; }
   #hud .badge-slot{
-    width:16px; height:16px; border:1px solid var(--cream); border-radius:50%;
-    display:flex; align-items:center; justify-content:center; background:#000; opacity:.35;
+    width:18px; height:18px; border:1px solid #6f6f92; border-radius:50%;
+    display:flex; align-items:center; justify-content:center; background:#000; opacity:.4;
   }
   #hud .badge-slot.earned{ opacity:1; box-shadow:0 0 6px var(--gold); border-color:var(--gold); }
-  #hud .badge-slot canvas{ width:12px; height:12px; }
+  #hud .badge-slot canvas{ width:14px; height:14px; image-rendering:pixelated; }
+  #hud-role{ color:var(--hp-yellow); }
+  #topright{ position:absolute; top:8px; right:8px; z-index:40; display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
   #dex{
-    position:absolute; top:8px; right:8px; z-index:40;
-    background:rgba(20,20,36,0.82); border:2px solid var(--cream); border-radius:4px;
+    background:rgba(20,20,36,0.88); border:2px solid var(--cream); border-radius:4px;
     padding:5px 8px; font-size:8px; color:var(--hp-yellow);
   }
+  .icon-btn{
+    font-family:var(--font); font-size:8px; padding:7px 8px; min-height:28px;
+    background:rgba(20,20,36,0.88); color:var(--cream); border:2px solid var(--cream);
+    border-radius:4px; cursor:pointer;
+  }
+  .icon-btn:active{ background:#3d3d58; }
+  #hud-row{ display:flex; gap:4px; }
 
   /* ===== Overlays ===== */
   .overlay{
     position:absolute; inset:0; display:none; flex-direction:column;
-    align-items:center; justify-content:center; z-index:100; padding:22px; box-sizing:border-box;
+    align-items:center; justify-content:center; z-index:100; padding:18px; box-sizing:border-box;
   }
   .overlay.active{ display:flex; }
 
   /* ===== Title screen ===== */
   #startup{
     background:linear-gradient(180deg,#4a7fd6 0%, #74b04a 54%, #6abe30 100%);
-    text-align:center;
+    text-align:center; padding:14px;
   }
   .logo{
-    font-size:30px; line-height:1.35; color:#fff;
+    font-size:26px; line-height:1.35; color:#fff;
     text-shadow:4px 4px 0 var(--red), 8px 8px 0 var(--ink);
-    letter-spacing:2px; margin-top:6px;
+    letter-spacing:2px; margin-top:2px;
   }
   .subtitle{
-    margin-top:14px; font-size:9px; background:var(--ink); color:var(--hp-yellow);
-    padding:6px 12px; border-radius:3px; letter-spacing:2px;
+    margin-top:12px; font-size:9px; background:var(--ink); color:var(--hp-yellow);
+    padding:6px 12px; border-radius:3px; letter-spacing:1px; line-height:1.6;
   }
   .role-tag{
-    margin-top:26px; font-size:9px; color:var(--ink); background:rgba(255,255,255,0.88);
-    padding:8px 14px; border:2px solid var(--ink); line-height:1.8; border-radius:2px;
+    margin-top:14px; font-size:8px; color:var(--ink); background:rgba(255,255,255,0.9);
+    padding:8px 12px; border:2px solid var(--ink); line-height:1.9; border-radius:2px;
   }
-  #title-sprite{ margin-top:16px; width:48px; height:48px; image-rendering:pixelated; }
+  #title-sprite{ margin-top:10px; width:48px; height:48px; image-rendering:pixelated; }
   .blink{
-    margin-top:18px; font-size:10px; color:var(--ink); cursor:pointer;
-    animation:blinker 1s step-start infinite; background:rgba(255,255,255,0.6); padding:6px 10px; border-radius:2px;
+    margin-top:12px; font-size:10px; color:var(--ink); cursor:pointer;
+    animation:blinker 1s step-start infinite; background:rgba(255,255,255,0.72);
+    padding:9px 12px; border-radius:2px; border:2px solid var(--ink);
   }
   @keyframes blinker{ 50%{ opacity:0; } }
+  .no-anim .blink{ animation:none; }
 
   /* ===== Dialog box ===== */
   #dialog{
-    position:absolute; left:10px; bottom:10px; width:460px; min-height:104px;
+    position:absolute; left:10px; bottom:10px; width:460px; min-height:110px;
     background:var(--cream); border:4px solid var(--ink); border-radius:6px;
-    padding:14px 18px; font-size:11px; line-height:1.8; color:var(--ink);
+    padding:14px 18px; font-size:11px; line-height:1.85; color:var(--ink);
     display:none; z-index:150; cursor:pointer; box-shadow:0 0 0 2px var(--ink) inset;
   }
+  #dialog-name{
+    position:absolute; top:-14px; left:12px; background:var(--ink); color:var(--hp-yellow);
+    font-size:8px; padding:4px 8px; border-radius:3px; display:none;
+  }
+  #dialog-name.show{ display:block; }
   #dialog-text{ white-space:pre-line; }
   #dialog .arrow{ position:absolute; right:14px; bottom:10px; display:none; animation:blinker .6s step-start infinite; }
   #dialog.show-arrow .arrow{ display:block; }
 
-  /* ===== Generic menu box (Directories) ===== */
+  /* ===== Generic menu box ===== */
   .menu-box{
     background:var(--cream); border:4px solid var(--ink); border-radius:8px;
-    padding:18px 22px; width:92%; max-width:410px; color:var(--ink); box-shadow:0 0 0 2px var(--ink) inset;
+    padding:14px 16px; width:100%; max-width:430px; max-height:100%; overflow-y:auto;
+    color:var(--ink); box-shadow:0 0 0 2px var(--ink) inset;
+    animation:popin .18s ease-out;
   }
-  .menu-box h3{ font-size:13px; margin:0 0 6px; letter-spacing:1px; line-height:1.4; }
-  .menu-box p{ font-size:9px; line-height:1.6; margin:0 0 14px; color:var(--red); }
-  .menu-box ul{ font-size:9px; line-height:1.9; padding-left:16px; margin:0 0 14px; }
+  .no-anim .menu-box{ animation:none; }
+  @keyframes popin{ from{ transform:scale(.92); opacity:0; } to{ transform:scale(1); opacity:1; } }
+  .menu-box h3{ font-size:12px; margin:0 0 4px; letter-spacing:1px; line-height:1.5; }
+  .menu-box .sub{ font-size:8px; line-height:1.6; margin:0 0 10px; color:#5b5b74; }
+  .menu-box p{ font-size:9px; line-height:1.8; margin:0 0 10px; }
+  .menu-box .hot{ color:var(--red); }
+  .menu-box ul{ font-size:9px; line-height:1.9; padding-left:15px; margin:0 0 10px; }
+  .menu-box li{ margin-bottom:5px; }
   .menu-btn{
-    display:block; width:100%; padding:10px; margin:8px 0; font-family:'Press Start 2P';
-    font-size:9px; background:#fff; border:2px solid var(--ink); cursor:pointer; text-align:center; color:var(--ink);
+    display:block; width:100%; padding:11px 10px; margin:7px 0; font-family:var(--font);
+    font-size:9px; line-height:1.5; background:#fff; border:2px solid var(--ink);
+    cursor:pointer; text-align:center; color:var(--ink); border-radius:2px;
   }
   .menu-btn:hover{ background:#eee; }
+  .menu-btn:active{ background:#ddd; }
+  .menu-btn.primary{ background:var(--gold); }
+  .tabs{ display:flex; gap:4px; margin-bottom:10px; flex-wrap:wrap; }
+  .tab{
+    font-family:var(--font); font-size:8px; padding:8px 7px; background:#fff;
+    border:2px solid var(--ink); cursor:pointer; color:var(--ink); flex:1; min-width:56px; border-radius:2px;
+  }
+  .tab.on{ background:var(--ink); color:var(--hp-yellow); }
+  .card-note{
+    font-size:8px; line-height:1.8; background:#efe7d2; border-left:4px solid var(--teal);
+    padding:8px 9px; margin:0 0 10px;
+  }
+  .card-warn{ border-left-color:var(--red); }
+
+  /* ===== DisasterDex ===== */
+  .dex-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:5px; margin-bottom:10px; }
+  .dex-cell{
+    background:#fff; border:2px solid var(--ink); border-radius:3px; padding:4px 2px;
+    display:flex; flex-direction:column; align-items:center; gap:3px; cursor:pointer; min-height:48px;
+  }
+  .dex-cell canvas{ width:22px; height:22px; image-rendering:pixelated; }
+  .dex-cell span{ font-size:6px; line-height:1.3; text-align:center; color:var(--ink); }
+  .dex-cell.locked{ background:#ccc4b2; opacity:.75; cursor:default; }
+  .dex-cell.locked canvas{ filter:brightness(0) opacity(.35); }
+  .dex-bar{ height:8px; background:#ccc4b2; border:2px solid var(--ink); margin-bottom:8px; }
+  .dex-bar i{ display:block; height:100%; background:var(--teal); width:0; transition:width .4s ease; }
 
   /* ===== Battle screen ===== */
   #battle-screen{
-    background:linear-gradient(180deg,#bfe6c1 0%, #bfe6c1 58%, #8a5a2c 58%, #8a5a2c 100%);
+    background:linear-gradient(180deg,#bfe6c1 0%, #bfe6c1 54%, #8a5a2c 54%, #8a5a2c 100%);
     padding:0; justify-content:flex-end;
   }
-  .battle-field{ position:absolute; top:0; left:0; right:0; bottom:118px; }
-  .platform{ position:absolute; width:120px; height:30px; background:rgba(0,0,0,0.18); border-radius:50%; }
-  .opp-platform{ top:78px; right:46px; }
-  .ply-platform{ bottom:46px; left:34px; }
+  #battle-screen.bg-night{ background:linear-gradient(180deg,#4a5a7a 0%, #4a5a7a 54%, #4a3a2c 54%, #4a3a2c 100%); }
+  #battle-screen.bg-fire{ background:linear-gradient(180deg,#e6a37a 0%, #e6a37a 54%, #6a3a1c 54%, #6a3a1c 100%); }
+  #battle-screen.bg-water{ background:linear-gradient(180deg,#8fb6d8 0%, #8fb6d8 54%, #4a6a84 54%, #4a6a84 100%); }
+  #battle-screen.shaking{ animation:shake .35s linear infinite; }
+  @keyframes shake{
+    0%{ transform:translate(0,0);} 25%{ transform:translate(-3px,2px);} 50%{ transform:translate(3px,-2px);}
+    75%{ transform:translate(-2px,-2px);} 100%{ transform:translate(0,0);}
+  }
+  .battle-field{ position:absolute; top:0; left:0; right:0; bottom:172px; }
+  .platform{ position:absolute; width:118px; height:28px; background:rgba(0,0,0,0.18); border-radius:50%; }
+  .opp-platform{ top:74px; right:44px; }
+  .ply-platform{ bottom:30px; left:34px; }
   .sprite-box{ position:absolute; image-rendering:pixelated; }
-  #opp-sprite{ top:18px; right:60px; width:64px; height:64px; }
-  #ply-sprite{ bottom:58px; left:48px; width:96px; height:96px; }
+  #opp-sprite{ top:16px; right:58px; width:64px; height:64px; animation:bob 1.6s ease-in-out infinite; }
+  #ply-sprite{ bottom:38px; left:48px; width:88px; height:88px; }
+  @keyframes bob{ 0%,100%{ transform:translateY(0);} 50%{ transform:translateY(-4px);} }
+  .no-anim #opp-sprite{ animation:none; }
+  #opp-sprite.flicker{ animation:bob 1.6s ease-in-out infinite, flick .5s steps(2) infinite; }
+  @keyframes flick{ 0%{ filter:none;} 50%{ filter:brightness(1.35) saturate(1.4);} 100%{ filter:none;} }
   .info-box{
     position:absolute; background:var(--cream); border:3px solid var(--ink); border-radius:6px;
-    padding:8px 10px; font-size:9px; min-width:158px; color:var(--ink); line-height:1.5;
+    padding:7px 9px; font-size:9px; min-width:172px; color:var(--ink); line-height:1.5;
   }
-  .opp-info{ top:14px; left:14px; }
-  .ply-info{ bottom:14px; right:14px; }
+  .opp-info{ top:12px; left:12px; }
+  .ply-info{ bottom:10px; right:12px; }
+  .info-box .tag{ font-size:7px; color:#5b5b74; display:block; margin-top:2px; }
   .hp-row{ display:flex; align-items:center; gap:6px; margin-top:4px; }
-  .hp-label{ font-size:8px; color:var(--blue); }
-  .hp-bar-bg{ flex:1; height:6px; background:#999; border:1px solid var(--ink); }
-  .hp-bar{ height:100%; background:var(--hp-green); width:100%; transition:width .5s ease; }
+  .hp-label{ font-size:7px; color:var(--blue); }
+  .hp-bar-bg{ flex:1; height:7px; background:#999; border:1px solid var(--ink); }
+  .hp-bar{ height:100%; background:var(--hp-green); width:100%; transition:width .45s ease; }
   #battle-msgbox{
-    position:absolute; left:0; right:0; bottom:0; height:118px;
-    background:var(--cream); border-top:4px solid var(--ink); padding:12px 16px; box-sizing:border-box; color:var(--ink);
+    position:absolute; left:0; right:0; bottom:0; height:172px;
+    background:var(--cream); border-top:4px solid var(--ink); padding:10px 14px 8px;
+    box-sizing:border-box; color:var(--ink); display:flex; flex-direction:column;
   }
-  #battle-text{ font-size:9px; line-height:1.6; min-height:40px; white-space:pre-line; }
-  .battle-actions{ display:flex; flex-direction:column; gap:6px; margin-top:8px; }
+  #battle-text{ font-size:9px; line-height:1.7; min-height:44px; white-space:pre-line; flex:0 0 auto; }
+  .battle-actions{ display:flex; flex-direction:column; gap:5px; margin-top:6px; overflow-y:auto; flex:1 1 auto; }
   .battle-btn{
-    font-family:'Press Start 2P'; font-size:8px; background:#fff; border:2px solid var(--ink);
-    padding:8px; cursor:pointer; color:var(--ink); text-align:left;
+    font-family:var(--font); font-size:8px; line-height:1.55; background:#fff; border:2px solid var(--ink);
+    padding:8px; cursor:pointer; color:var(--ink); text-align:left; white-space:normal; border-radius:2px;
   }
   .battle-btn:hover{ background:#eee; }
-  .battle-btn:disabled{ opacity:.4; cursor:default; }
+  .battle-btn:active{ background:#ddd; }
+  .battle-btn.good{ background:#cdeccd; }
+  .battle-btn.bad{ background:#f2d0cc; }
+
+  /* ===== Badge unlock ===== */
+  #badge-screen{ background:rgba(10,10,20,0.86); }
+  .badge-card{
+    background:var(--cream); border:4px solid var(--gold); border-radius:8px; padding:18px;
+    text-align:center; color:var(--ink); max-width:360px; box-shadow:0 0 24px rgba(224,167,46,.5);
+    animation:badgepop .5s cubic-bezier(.2,1.6,.4,1);
+  }
+  .no-anim .badge-card{ animation:none; }
+  @keyframes badgepop{ from{ transform:scale(.3) rotate(-12deg); opacity:0; } to{ transform:scale(1) rotate(0); opacity:1; } }
+  .badge-card canvas{ width:88px; height:88px; image-rendering:pixelated; animation:spinbadge 2.4s ease-in-out infinite; }
+  @keyframes spinbadge{ 0%,100%{ transform:translateY(0) } 50%{ transform:translateY(-6px) } }
+  .no-anim .badge-card canvas{ animation:none; }
+  .badge-card h3{ font-size:12px; margin:10px 0 6px; color:var(--red); line-height:1.6; }
+  .badge-card p{ font-size:8px; line-height:1.9; margin:0 0 10px; }
+
+  /* ===== Ending ===== */
+  #ending-screen{ background:linear-gradient(180deg,#101026 0%, #2a2a52 60%, #3a9b6e 100%); text-align:center; }
+  #ending-screen .big{
+    font-size:20px; color:#fff; line-height:1.5; text-shadow:3px 3px 0 var(--red), 6px 6px 0 var(--ink);
+  }
+  #ending-screen .rank{ margin-top:14px; font-size:10px; color:var(--hp-yellow); background:var(--ink); padding:8px 12px; line-height:1.7; }
+  #ending-screen .stats{ margin-top:14px; font-size:8px; line-height:2; color:var(--cream); }
 
   /* ===== Fade transition ===== */
   #fade{
     position:absolute; inset:0; background:#000; opacity:0; pointer-events:none;
-    transition:opacity .25s; z-index:200;
+    transition:opacity var(--fade-ms); z-index:200;
   }
   #fade.show{ opacity:1; }
+  #flash{ position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none; z-index:199; }
+  #flash.go{ animation:flashseq .45s steps(1); }
+  @keyframes flashseq{ 0%{opacity:0} 15%{opacity:.85} 30%{opacity:0} 45%{opacity:.85} 60%{opacity:0} 75%{opacity:.85} 100%{opacity:0} }
 
   /* ===== Sound toggle ===== */
   #mute-btn{
     position:absolute; bottom:8px; right:8px; z-index:45;
-    background:rgba(20,20,36,0.82); color:var(--cream); border:2px solid var(--cream);
-    border-radius:4px; font-family:'Press Start 2P'; font-size:8px; padding:5px 7px; cursor:pointer;
+    background:rgba(20,20,36,0.88); color:var(--cream); border:2px solid var(--cream);
+    border-radius:4px; font-family:var(--font); font-size:8px; padding:7px 8px; cursor:pointer; min-height:28px;
   }
 
+  /* ===== Larger-text accessibility mode ===== */
+  .big-text #dialog{ font-size:13px; line-height:1.9; }
+  .big-text #battle-text{ font-size:11px; }
+  .big-text .battle-btn{ font-size:9.5px; }
+  .big-text .menu-box p, .big-text .menu-box ul{ font-size:10.5px; }
+  .big-text .menu-btn, .big-text .tab{ font-size:10px; }
+  .big-text .card-note{ font-size:9.5px; }
+  .big-text .dex-cell span{ font-size:7px; }
+
   /* ===== Controls / mobile dpad ===== */
-  .controls-hint{
-    margin-top:6px; font-size:8px; color:#c9c9e6; text-align:center; line-height:1.7;
-  }
+  .controls-hint{ margin-top:6px; font-size:8px; color:#c9c9e6; text-align:center; line-height:1.9; }
   .controls-hint b{ color:var(--hp-yellow); }
-  .touch-controls{
-    display:none; justify-content:space-between; align-items:center; margin-top:10px; padding:0 6px;
-  }
-  .dpad{ display:grid; grid-template-columns:34px 34px 34px; grid-template-rows:34px 34px 34px; gap:3px; }
+  .touch-controls{ display:none; justify-content:space-between; align-items:center; margin-top:12px; padding:0 4px; gap:10px; }
+  .dpad{ display:grid; grid-template-columns:44px 44px 44px; grid-template-rows:44px 44px 44px; gap:3px; }
   .dpad button{
-    background:#3d3d58; border:2px solid var(--ink); color:#fff; font-family:'Press Start 2P';
-    border-radius:4px; font-size:12px; touch-action:none;
+    background:#3d3d58; border:2px solid var(--ink); color:#fff; font-family:var(--font);
+    border-radius:6px; font-size:14px; touch-action:none;
   }
   .dpad button:active{ background:#5a5a80; }
   .dpad .d-up{ grid-area:1/2; } .dpad .d-left{ grid-area:2/1; } .dpad .d-mid{ grid-area:2/2; visibility:hidden; }
   .dpad .d-right{ grid-area:2/3; } .dpad .d-down{ grid-area:3/2; }
+  .btn-stack{ display:flex; flex-direction:column; gap:8px; align-items:center; }
   .a-btn{
-    width:54px; height:54px; border-radius:50%; background:var(--red); border:2px solid var(--ink);
-    color:#fff; font-family:'Press Start 2P'; font-size:11px; touch-action:none;
+    width:64px; height:64px; border-radius:50%; background:var(--red); border:3px solid var(--ink);
+    color:#fff; font-family:var(--font); font-size:12px; touch-action:none;
   }
   .a-btn:active{ background:#ff6a5c; }
-  @media (max-width:560px){
-    .console{ 
-      padding: 14px; 
-      width: 340px; /* Constrains the console to fit smaller screens */
-      max-width: 95vw; 
-      box-sizing: border-box; 
-    }
-    #game-container{ 
-      width: 480px;  /* Keep the original dimensions so inner elements don't break */
-      height: 480px; 
-      transform: scale(0.65); /* Visually zooms out the game by 35% */
-      transform-origin: top left; /* Anchors the scaling to the top-left corner */
-      margin-bottom: -168px; /* Collapses the empty layout space left behind (480 - 480*0.65) */
-      margin-right: -168px; 
-    }
-    .touch-controls{ 
-      display: flex; 
-      margin-top: 12px; /* Adds a bit of breathing room for the D-pad */
-    }
-    .controls-hint{ 
-      display: none; 
-    }
+  .b-btn{
+    width:64px; height:34px; border-radius:8px; background:#3d3d58; border:2px solid var(--ink);
+    color:#fff; font-family:var(--font); font-size:8px; touch-action:none;
+  }
+  @media (max-width:600px), (pointer:coarse){
+    .console{ padding:14px 14px 12px; max-width:100vw; }
+    .touch-controls{ display:flex; }
+    .controls-hint{ display:none; }
   }
 </style>
 </head>
@@ -223,71 +314,122 @@
     <div class="console-led"></div>
     <div class="console-label">MALOLOS POCKET</div>
 
+    <div id="stage">
     <div id="game-container">
       <canvas id="gameCanvas" width="480" height="480"></canvas>
+      <canvas id="fx" width="480" height="480"></canvas>
 
       <div id="hud">
         <div class="badges">
           <div class="badge-slot" id="badge-0"></div>
           <div class="badge-slot" id="badge-1"></div>
           <div class="badge-slot" id="badge-2"></div>
+          <div class="badge-slot" id="badge-3"></div>
         </div>
-        <div>CITIZEN</div>
+        <div id="hud-role">MAMAMAYAN</div>
       </div>
-      <div id="dex">SURVIVOR 0/5</div>
+
+      <div id="topright">
+        <div id="dex">DEX 0/30</div>
+        <div id="hud-row">
+          <button class="icon-btn" id="dex-btn">DEX</button>
+          <button class="icon-btn" id="menu-btn">☰</button>
+        </div>
+      </div>
 
       <div id="startup" class="overlay active">
-        <div class="logo">MALOLOS<br>CITY</div>
-        <div class="subtitle">★ DISASTER READINESS ★</div>
-        <div class="role-tag">CDRRMO DIRECTORY<br>&amp; Survival Guide Simulation</div>
+        <div class="logo">BAYANI NG<br>MALOLOS</div>
+        <div class="subtitle">★ KAHANDAAN SA SAKUNA ★</div>
+        <div class="role-tag">Gabay ng CDRRMO Malolos<br>Laro sa Kaligtasan at Pagtugon</div>
         <canvas id="title-sprite" width="48" height="48"></canvas>
-        <div class="blink" id="start-btn">▶ PRESS ENTER TO START</div>
+        <div class="blink" id="start-btn">▶ PINDUTIN ANG ENTER UPANG MAGSIMULA</div>
       </div>
 
-      <div id="dialog"><span id="dialog-text"></span><span class="arrow">▼</span></div>
+      <div id="dialog">
+        <span id="dialog-name"></span>
+        <span id="dialog-text"></span>
+        <span class="arrow">▼</span>
+      </div>
 
-      <div id="directory-screen" class="overlay">
+      <div id="info-screen" class="overlay">
         <div class="menu-box">
-          <h3 id="dir-title">BUILDING TITLE</h3>
-          <p id="dir-hotline">HOTLINE: 000-0000</p>
-          <ul id="dir-list">
-            <li>Scenario 1</li>
-          </ul>
-          <button class="menu-btn" onclick="closeDirectory()">EXIT BUILDING</button>
+          <h3 id="info-title">PAMAGAT</h3>
+          <div class="sub" id="info-sub"></div>
+          <div class="tabs" id="info-tabs"></div>
+          <div id="info-body"></div>
+          <button class="menu-btn" onclick="closeDirectory()">◀ LUMABAS</button>
+        </div>
+      </div>
+
+      <div id="dex-screen" class="overlay">
+        <div class="menu-box">
+          <h3>DISASTERDEX</h3>
+          <div class="sub" id="dex-sub">Koleksyon ng mga natutunang sakuna at kagipitan</div>
+          <div class="dex-bar"><i id="dex-bar-fill"></i></div>
+          <div class="tabs" id="dex-tabs"></div>
+          <div id="dex-body"></div>
+          <button class="menu-btn" onclick="closeDex()">◀ ISARA</button>
+        </div>
+      </div>
+
+      <div id="settings-screen" class="overlay">
+        <div class="menu-box">
+          <h3>MENU</h3>
+          <div class="sub">Mga setting at gabay</div>
+          <div id="settings-body"></div>
+          <button class="menu-btn" onclick="closeSettings()">◀ IPAGPATULOY</button>
         </div>
       </div>
 
       <div id="battle-screen" class="overlay">
         <div class="battle-field">
           <div class="info-box opp-info">
-            <div id="opp-name">EMERGENCY</div>
-            <div class="hp-row"><span class="hp-label">HP</span><div class="hp-bar-bg"><div class="hp-bar" id="opp-hp"></div></div></div>
+            <div id="opp-name">KAGIPITAN</div>
+            <span class="tag" id="opp-cat">KATEGORYA</span>
+            <div class="hp-row"><span class="hp-label">PANGANIB</span><div class="hp-bar-bg"><div class="hp-bar" id="opp-hp"></div></div></div>
           </div>
           <div class="platform opp-platform"></div>
           <canvas class="sprite-box" id="opp-sprite" width="64" height="64"></canvas>
 
           <div class="platform ply-platform"></div>
-          <canvas class="sprite-box" id="ply-sprite" width="96" height="96"></canvas>
+          <canvas class="sprite-box" id="ply-sprite" width="88" height="88"></canvas>
           <div class="info-box ply-info">
-            <div>CITIZEN &nbsp;Lv.10</div>
-            <div class="hp-row"><span class="hp-label">HP</span><div class="hp-bar-bg"><div class="hp-bar" id="ply-hp"></div></div></div>
+            <div id="ply-name">IKAW</div>
+            <span class="tag">Kabataang Handa</span>
+            <div class="hp-row"><span class="hp-label">KALMA</span><div class="hp-bar-bg"><div class="hp-bar" id="ply-hp"></div></div></div>
           </div>
         </div>
         <div id="battle-msgbox">
           <div id="battle-text"></div>
-          <div class="battle-actions" id="battle-actions">
-            <button class="battle-btn" id="btn-action1">► ACTION 1</button>
-            <button class="battle-btn" id="btn-action2">► ACTION 2</button>
-          </div>
+          <div class="battle-actions" id="battle-actions"></div>
         </div>
       </div>
 
+      <div id="badge-screen" class="overlay">
+        <div class="badge-card">
+          <canvas id="badge-big" width="16" height="16"></canvas>
+          <h3 id="badge-title">BADGE</h3>
+          <p id="badge-desc"></p>
+          <button class="menu-btn primary" id="badge-ok">MAGALING!</button>
+        </div>
+      </div>
+
+      <div id="ending-screen" class="overlay">
+        <div class="big">BAYANI NG<br>MALOLOS</div>
+        <div class="rank">★ GANAP NA HANDA SA SAKUNA ★</div>
+        <div class="stats" id="ending-stats"></div>
+        <button class="menu-btn primary" id="ending-ok" style="max-width:280px;margin-top:16px;">MAGPATULOY</button>
+      </div>
+
+      <div id="flash"></div>
       <div id="fade"></div>
-      <button id="mute-btn">♪ SOUND: ON</button>
+      <button id="mute-btn">♪ TUNOG: BUKAS</button>
+    </div>
     </div>
 
     <div class="controls-hint">
-      <b>Arrow Keys / WASD</b> move &nbsp;•&nbsp; <b>Enter / Space</b> interact &amp; advance text
+      <b>Arrow Keys / WASD</b> paggalaw &nbsp;•&nbsp; <b>Enter / Space</b> kausapin at magpatuloy<br>
+      <b>D</b> DisasterDex &nbsp;•&nbsp; <b>Esc</b> menu
     </div>
     <div class="touch-controls">
       <div class="dpad">
@@ -297,12 +439,23 @@
         <button class="d-right" data-key="ArrowRight">▶</button>
         <button class="d-down" data-key="ArrowDown">▼</button>
       </div>
-      <button class="a-btn" id="a-btn">A</button>
+      <div class="btn-stack">
+        <button class="a-btn" id="a-btn">A</button>
+        <button class="b-btn" id="b-btn">DEX</button>
+      </div>
     </div>
   </div>
 
 <script>
-/* ================= GAME SCRIPT ================= */
+/* ==========================================================================
+   BAYANI NG MALOLOS — Laro sa Kahandaan sa Sakuna
+   Single-file, offline-capable, mobile-first retro RPG para sa Lungsod ng Malolos.
+   Balangkas: (1) pixel art  (2) sprite helpers  (3) nilalaman/lokalisasyon
+   (4) mapa  (5) estado  (6) tunog  (7) drawing  (8) camera/render
+   (9) galaw  (10) dialog  (11) overlays  (12) laban  (13) FX  (14) loop
+   (15) title  (16) input  (17) save  (18) init
+   ========================================================================== */
+
 /* ---------- 1. PALETTE & PIXEL ART DATA ---------- */
 const PALETTE = [
     'transparent', // 0 .
@@ -329,9 +482,31 @@ const PALETTE = [
     '#74b04a', // 21 L tree mid green
     '#ddc28c', // 22 n dirt spot
     '#e74c3c', // 23 x apple red
+    '#5a5a66', // 24 t aspalto
+    '#74747f', // 25 T aspalto liwanag
+    '#ded7c6', // 26 C semento
+    '#bdb5a3', // 27 V semento madilim
+    '#7a5230', // 28 F kahoy madilim (tulay)
+    '#b07a45', // 29 N kahoy liwanag
+    '#f2c94c', // 30 G ginto (badge)
+    '#a8d8ea', // 31 q salamin liwanag
+    '#4a7fa5', // 32 Q salamin madilim
+    '#efe9dc', // 33 u batong pader
+    '#9b917f', // 34 v anino ng bato
+    '#ff9f45', // 35 f orange apoy
+    '#8e44ad', // 36 P lila
+    '#2ecc71', // 37 E matingkad na berde
+    '#5c3a1e', // 38 D kayumangging madilim
+    '#3a3a4a', // 39 Z malambot na dilim
+    '#c9c2b4', // 40 U mapusyaw na abo
+    '#7f8c8d', // 41 M metal
+    '#ecf0f1', // 42 I maputi
 ];
-const CMAP = {'.':0, 'k':1, 'w':2, 'g':3, 'd':4, 'p':5, 'r':6, 'b':7, 's':8, 'o':9, 'h':10, 'c':11, 'R':12, 'i':13, 'e':14, 'a':15, 'A':16, 'y':17, 'm':18, 'j':19, 'l':20, 'L':21, 'n':22, 'x':23};
+const CMAP = {'.':0,'k':1,'w':2,'g':3,'d':4,'p':5,'r':6,'b':7,'s':8,'o':9,'h':10,'c':11,'R':12,'i':13,
+  'e':14,'a':15,'A':16,'y':17,'m':18,'j':19,'l':20,'L':21,'n':22,'x':23,'t':24,'T':25,'C':26,'V':27,
+  'F':28,'N':29,'G':30,'q':31,'Q':32,'u':33,'v':34,'f':35,'P':36,'E':37,'D':38,'Z':39,'U':40,'M':41,'I':42};
 
+/* --- lupa / kalikasan --- */
 const RAW_LAWN = [
     "gggggggggggggggg","gggdgggggggdgggg","ggdddgggggdddggg","gggdgggggggdgggg",
     "gggggggggggggggg","gggggggggggggggg","gggggggggggggggg","gggggggggggggggg",
@@ -362,6 +537,12 @@ const RAW_WATER2 = [
     "aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa",
     "aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa","AAaaAAaaAAaaAAaa","AAaaAAaaAAaaAAaa",
 ];
+const RAW_WATER3 = [
+    "aaaaaaaaaaaaaaaa","AAaaAAaaAAaaAAaa","aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa",
+    "aaaaaaaaaaaaaaaa","AAaaAAaaAAaaAAaa","aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa",
+    "aaaaaaaaaaaaaaaa","AAaaAAaaAAaaAAaa","aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa",
+    "aaaaaaaaaaaaaaaa","AAaaAAaaAAaaAAaa","aaaaaaaaaaaaaaaa","aaaaaaaaaaaaaaaa",
+];
 const RAW_TREE = [
     "gggggllllllggggg","ggllllllllllllgg","ggllllllllllllgg","gllllllllllllllg",
     "gllllLLllLLllllg","glllLLllllLLlllg","gllllllllllllllg","gllllllllllllllg",
@@ -374,11 +555,79 @@ const RAW_FLOWER = [
     "gggggggggggggggg","gggdgggggggdgggg","ggdddgggggdddggg","gggdgggggggdgggg",
     "gggggggggggggggg","gggggggggggggggg","gggggggggggggggg","gggggggggggggggg",
 ];
+const RAW_HEDGE = [
+    "gggggggggggggggg","ggLLLLLLLLLLLLgg","gLLllllllllllLLg","gLllllllllllllLg",
+    "gLllLlllllLllllg","gLllllllllllllLg","gLlllLllllllLllg","gLllllllllllllLg",
+    "gLllllllllllllLg","gLllLllllllllllg","gLllllllllllllLg","gLllllllllllllLg",
+    "ggLllllllllllLgg","ggLLLLLLLLLLLLgg","gggggggggggggggg","gggggggggggggggg",
+];
+const RAW_DIRT = [
+    "nnnnnnnnnnnnnnnn","nnnonnnnnnnnnnnn","nnnnnnnnnnonnnnn","nnnnnnnnnnnnnnnn",
+    "nnnnnonnnnnnnnnn","nnnnnnnnnnnnnonn","nnnnnnnnnnnnnnnn","nnonnnnnnnnnnnnn",
+    "nnnnnnnnnonnnnnn","nnnnnnnnnnnnnnnn","nnnnnnnnnnnnnonn","nnnnonnnnnnnnnnn",
+    "nnnnnnnnnnnnnnnn","nnnnnnnonnnnnnnn","nnnnnnnnnnnnnnnn","nnnnnnnnnnonnnnn",
+];
+/* --- daan / imprastraktura --- */
+const RAW_ROADH = [
+    "tttttttttttttttt","TTTTTTTTTTTTTTTT","tttttttttttttttt","tttttttttttttttt",
+    "tttttttttttttttt","tttttttttttttttt","tttttttttttttttt","ttwwwwtttwwwwttt",
+    "tttttttttttttttt","tttttttttttttttt","tttttttttttttttt","tttttttttttttttt",
+    "tttttttttttttttt","tttttttttttttttt","TTTTTTTTTTTTTTTT","tttttttttttttttt",
+];
+const RAW_ROADV = [
+    "tTtttttttttttTtt","tTtttttttttttTtt","tTtttttwwttttTtt","tTtttttwwttttTtt",
+    "tTtttttwwttttTtt","tTtttttwwttttTtt","tTtttttttttttTtt","tTtttttttttttTtt",
+    "tTtttttttttttTtt","tTtttttwwttttTtt","tTtttttwwttttTtt","tTtttttwwttttTtt",
+    "tTtttttwwttttTtt","tTtttttttttttTtt","tTtttttttttttTtt","tTtttttttttttTtt",
+];
+const RAW_ROADX = [
+    "tttttttttttttttt","tttttTtttttttttt","tttttttttttttttt","tttttttttttTtttt",
+    "tttttttttttttttt","tttttttttttttttt","ttTttttttttttttt","tttttttttttttttt",
+    "tttttttttttttttt","tttttttttttttTtt","tttttttttttttttt","tttTtttttttttttt",
+    "tttttttttttttttt","tttttttttttttttt","tttttttTtttttttt","tttttttttttttttt",
+];
+const RAW_PLAZA = [
+    "VVVVVVVVVVVVVVVV","VCCCCCCCVCCCCCCC","VCCCCCCCVCCCCCCC","VCCCCCCCVCCCCCCC",
+    "VCCCCCCCVCCCCCCC","VCCCCCCCVCCCCCCC","VCCCCCCCVCCCCCCC","VCCCCCCCVCCCCCCC",
+    "VVVVVVVVVVVVVVVV","VCCCCCCCVCCCCCCC","VCCCCCCCVCCCCCCC","VCCCCCCCVCCCCCCC",
+    "VCCCCCCCVCCCCCCC","VCCCCCCCVCCCCCCC","VCCCCCCCVCCCCCCC","VCCCCCCCVCCCCCCC",
+];
+const RAW_BRIDGE = [
+    "FFFFFFFFFFFFFFFF","FNNNNNNNNNNNNNNF","FNNNNNNNNNNNNNNF","FNNNNNNNNNNNNNNF",
+    "FFFFFFFFFFFFFFFF","FNNNNNNNNNNNNNNF","FNNNNNNNNNNNNNNF","FNNNNNNNNNNNNNNF",
+    "FFFFFFFFFFFFFFFF","FNNNNNNNNNNNNNNF","FNNNNNNNNNNNNNNF","FNNNNNNNNNNNNNNF",
+    "FFFFFFFFFFFFFFFF","FNNNNNNNNNNNNNNF","FNNNNNNNNNNNNNNF","FFFFFFFFFFFFFFFF",
+];
+const RAW_MONUMENT = [
+    "gggggggggggggggg","gggggggkkggggggg","gggggggeeggggggg","gggggggeeggggggg",
+    "ggggggkeekgggggg","ggggggkeekgggggg","ggggggkeekgggggg","gggggkeeeekggggg",
+    "gggggkeeeekggggg","ggggkeeeeeekgggg","ggggkeGGGGekgggg","ggggkeeeeeekgggg",
+    "gggkeeeeeeeekggg","gggkeeeeeeeekggg","ggkkkkkkkkkkkkgg","gggggggggggggggg",
+];
+const RAW_SIGN = [
+    "gggggggggggggggg","gggggggggggggggg","gggggggggggggggg","gggkkkkkkkkkkggg",
+    "ggkooooooooookgg","ggkoooeeeeoookgg","ggkooooooooookgg","gggkkkkkkkkkkggg",
+    "gggggggooggggggg","gggggggooggggggg","gggggggooggggggg","gggggggooggggggg",
+    "gggggggooggggggg","gggggggooggggggg","ggggggoooogggggg","ggggggoooogggggg",
+];
+/* --- gusali --- */
 const RAW_ROOF = [
     "kkkkkkkkkkkkkkkk","RRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRR","RRRkRRRkRRRkRRRk",
     "RRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRR","RRRkRRRkRRRkRRRk",
     "RRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRR","RRRkRRRkRRRkRRRk",
     "RRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRR","kkkkkkkkkkkkkkkk",
+];
+const RAW_ROOF_CHURCH = [
+    "gggggggkkggggggg","gggggggkkggggggg","gggggkkkkkkggggg","gggggggkkggggggg",
+    "gggggggkkggggggg","kkkkkkkkkkkkkkkk","RRRRRRRRRRRRRRRR","RRRkRRRkRRRkRRRk",
+    "RRRRRRRRRRRRRRRR","RRRRRRRRRRRRRRRR","RRRkRRRkRRRkRRRk","RRRRRRRRRRRRRRRR",
+    "RRRRRRRRRRRRRRRR","RRRkRRRkRRRkRRRk","RRRRRRRRRRRRRRRR","kkkkkkkkkkkkkkkk",
+];
+const RAW_ROOF_DOME = [
+    "gggggggkgggggggg","gggggggkyygggggg","gggggggkgggggggg","ggggggkeekgggggg",
+    "gggggkeeeekggggg","ggggkeeeeeekgggg","gggkeeeeeeeekggg","ggkeeeeeeeeeekgg",
+    "kkkkkkkkkkkkkkkk","RRRRRRRRRRRRRRRR","RRRkRRRkRRRkRRRk","RRRRRRRRRRRRRRRR",
+    "RRRRRRRRRRRRRRRR","RRRkRRRkRRRkRRRk","RRRRRRRRRRRRRRRR","kkkkkkkkkkkkkkkk",
 ];
 const RAW_WALLWINDOW = [
     "kkkkkkkkkkkkkkkk","kcccccccccccccck","kcccccccccccccck","kcccccccccccccck",
@@ -392,18 +641,37 @@ const RAW_WALLPLAIN = [
     "kcccccccccccccck","kcccccccccccccck","kcccccccccccccck","kcccccccccccccck",
     "kcccccccccccccck","kcccccccccccccck","kcccccccccccccck","kkkkkkkkkkkkkkkk",
 ];
+const RAW_WALLSTONE_WIN = [
+    "kkkkkkkkkkkkkkkk","kuuuuuuuuuuuuuuk","kuuuuukkkkuuuuuk","kuuuukiiiikuuuuk",
+    "kuuuukiiiikuuuuk","kuuuukiiiikuuuuk","kuuuukiiiikuuuuk","kuuuukkkkkkuuuuk",
+    "kuuuuuuuuuuuuuuk","kuuvvuuuuuuvvuuk","kuuuuuuuuuuuuuuk","kuuuuuuuuuuuuuuk",
+    "kuuuuuuuuuuuuuuk","kuuuuuuuuuuuuuuk","kvvvvvvvvvvvvvvk","kkkkkkkkkkkkkkkk",
+];
+const RAW_WALLSTONE = [
+    "kkkkkkkkkkkkkkkk","kuuuuuuuuuuuuuuk","kuuuuuuuuuuuuuuk","kuuvvuuuuuuvvuuk",
+    "kuuuuuuuuuuuuuuk","kuuuuuuuuuuuuuuk","kuuuuuuuuuuuuuuk","kuuuuvvuuuuuuuuk",
+    "kuuuuuuuuuuuuuuk","kuuuuuuuuuuuuuuk","kuuuuuuuuvvuuuuk","kuuuuuuuuuuuuuuk",
+    "kuuuuuuuuuuuuuuk","kuuuuuuuuuuuuuuk","kvvvvvvvvvvvvvvk","kkkkkkkkkkkkkkkk",
+];
+const RAW_GLASSWALL = [
+    "kkkkkkkkkkkkkkkk","kQQQQQQQQQQQQQQk","kQqqqQQqqqQQqqQk","kQQQQQQQQQQQQQQk",
+    "kkkkkkkkkkkkkkkk","kQQQQQQQQQQQQQQk","kQqqqQQqqqQQqqQk","kQQQQQQQQQQQQQQk",
+    "kkkkkkkkkkkkkkkk","kQQQQQQQQQQQQQQk","kQqqqQQqqqQQqqQk","kQQQQQQQQQQQQQQk",
+    "kkkkkkkkkkkkkkkk","kUUUUUUUUUUUUUUk","kUUUUUUUUUUUUUUk","kkkkkkkkkkkkkkkk",
+];
 const RAW_DOOR = [
     "kkkkkkkkkkkkkkkk","kooookooookooook","kooookooookooook","kooookooookooook",
     "kooookooookooook","kooookooookooook","kooookooookooook","kooookooookooook",
     "kooookooookooook","kooookooookooook","kooookooookooook","kooookooookooook",
     "kooookooookooook","kooookooookooook","koooooooooyooook","kkkkkkkkkkkkkkkk",
 ];
-const RAW_SIGN = [
-    "gggggggggggggggg","gggggggggggggggg","gggggggggggggggg","gggkkkkkkkkkkggg",
-    "ggkooooooooookgg","ggkoooeeeeoookgg","ggkooooooooookgg","gggkkkkkkkkkkggg",
-    "gggggggooggggggg","gggggggooggggggg","gggggggooggggggg","gggggggooggggggg",
-    "gggggggooggggggg","gggggggooggggggg","ggggggoooogggggg","ggggggoooogggggg",
+const RAW_GLASSDOOR = [
+    "kkkkkkkkkkkkkkkk","kMMMMMMMMMMMMMMk","kMqqqqqkkqqqqqMk","kMqqqqqkkqqqqqMk",
+    "kMqqqqqkkqqqqqMk","kMqqqqqkkqqqqqMk","kMqqqqqkkqqqqqMk","kMqqqqqkkqqqqqMk",
+    "kMqqqqqkkqqqqqMk","kMqqqqqkkqqqqqMk","kMqqqqqkkqqqqqMk","kMqqqqqkkqqqqqMk",
+    "kMqqqqqkkqqqqqMk","kMqqqqqkkqqqqqMk","kMMMMMMMMMMMMMMk","kkkkkkkkkkkkkkkk",
 ];
+/* --- tauhan --- */
 const RAW_PLAYER_DOWN_0 = [
     "......rrrr......","....rrrrrrrr....","..rrrrwwwwrrrr..","..hkkkkkkkkkkh..",
     "..hksssssssskh..","..kssksssskssk..","..kssssssssssk..","..kkkkkkkkkkkk..",
@@ -440,42 +708,167 @@ const RAW_PLAYER_LEFT_1 = [
     ".kbbbbbbbbk.....",".kbbbkkbbbk.....",".ksbbbbbbbk.....",".ksbbbbbbbk.....",
     "..kbbbbbbbk.....","..jjj...jjj.....","..jjj...jjj.....","..www...www.....",
 ];
-// New Disaster Icons
-const RAW_ICON_QUAKE = [
+/* --- mga icon ng kagipitan --- */
+const RAW_IC_QUAKE = [
     "................","................","................","......kk........",
     ".....kooo.......","....koooook.....","....ooooookk....","...kooooookok...",
     "...koooookoook..","..kooooookook...","..ooooooooook...","....kkk...kk....",
     "................","................","................","................",
 ];
-const RAW_ICON_FIRE = [
-    ".......r........","......rrr.......",".....rrrrr......","....rryyyrr.....",
-    "...rryyyyyrr....","...ryyyyyyyr....","..rryyyyyyyrr...","..ryyyyyyyyyr...",
-    "..ryyyyyyyyyr...","...ryyyyyyyr....","....ryyyyyr.....",".....rrrrr......",
+const RAW_IC_FIRE = [
+    ".......r........","......rrr.......",".....rrrrr......","....rrfffrr.....",
+    "...rrfyyyfrr....","...rfyyyyyfr....","..rrfyyyyyfrr...","..rfyyyyyyyfr...",
+    "..rfyyyyyyyfr...","...rfyyyyyfr....","....rfyyyfr.....",".....rrfrr......",
     "......rrr.......","................","................","................",
 ];
-const RAW_ICON_MED = [
+const RAW_IC_MED = [
     "................","................","......rrrr......","......rrrr......",
     "......rrrr......","..rrrrrrrrrrrr..","..rrrrrrrrrrrr..","..rrrrrrrrrrrr..",
     "..rrrrrrrrrrrr..","......rrrr......","......rrrr......","......rrrr......",
     "................","................","................","................",
 ];
-const RAW_ICON_FLOOD = [
+const RAW_IC_FLOOD = [
     "................","................","................",".......b........",
     "......bbb.......",".....bbbbb......","....bbbbbbb.....","...bbbbbbbbb....",
     "..bbAAbbbAAbb...",".bbAAbbbAAbbbb..",".bbbbbbbbbbbbb..","..bbbbbbbbbbb...",
     "....bbbbbbb.....","................","................","................",
 ];
-const RAW_ICON_CRIME = [
+const RAW_IC_CRIME = [
     ".......kk.......","......kkkk......",".....kkkkkk.....","....kkwkkwwk....",
     "...kkkwkkwwkk...","...kkkkkkkkkk...","...kkkkkkkkkk...","....kkkkkkkk....",
     ".....ssssss.....",".....ssssss.....","......ssss......","................",
     "................","................","................","................",
 ];
+const RAW_IC_GAS = [
+    "................","......kkkk......","......kMMk......",".....kkMMkk.....",
+    "....kMMMMMMk....","...kMMMMMMMMk...","...kMMrrrrMMk...","...kMMrrrrMMk...",
+    "...kMMMMMMMMk...","...kMMMMMMMMk...","...kMMMMMMMMk...","...kMMMMMMMMk...",
+    "...kkkkkkkkkk...","................","................","................",
+];
+const RAW_IC_BOLT = [
+    "................","..........yyy...",".........yyy....","........yyy.....",
+    ".......yyy......","......yyyyyyy...",".....yyyyyyy....","......yyyy......",
+    ".......yyy......","......yy........",".....yy.........","....yy..........",
+    "...yy...........","..yy............","................","................",
+];
+const RAW_IC_GRASS = [
+    "................","......r.r.......",".....rrfrr......","....rrfffr......",
+    "...l..rfr...l...","..ll..lll..ll...","..lLl.lLl.lLl...",".lLlLlLlLlLlLl..",
+    ".lLlLlLlLlLlLl..","llLlLlLlLlLlLll.","llLlLlLlLlLlLll.","dddddddddddddddd",
+    "dddddddddddddddd","................","................","................",
+];
+const RAW_IC_BUILDING = [
+    "......r.r.......",".....rfrfr......","....rrfffrr.....","..kkkkkkkkkkkk..",
+    "..kcccccccccck..","..kciikciikcck..","..kcccccccccck..","..kciikciikcck..",
+    "..kcccccccccck..","..kciikciikcck..","..kcccccccccck..","..kcccooocccck..",
+    "..kkkkkkkkkkkk..","................","................","................",
+];
+const RAW_IC_TYPHOON = [
+    "................","....bbbbbbbb....","..bbbbbbbbbbbb..",".bbb........bbb.",
+    ".bb..bbbbbb..bb.","bb..bbbbbbbb..bb","bb..bb....bb..bb","bb..bb.ww.bb..bb",
+    "bb..bb....bb..bb","bb..bbbbbbbb..bb",".bb..bbbbbb..bb.",".bbb........bbb.",
+    "..bbbbbbbbbbbb..","....bbbbbbbb....","................","................",
+];
+const RAW_IC_HILL = [
+    "................","................",".........kkk....","........klllk...",
+    ".......kllllk...","......kllllllk..",".....koollllllk.","....kooooollllk.",
+    "...koooeooooolk.","..kooeoooeoooook",".kooooeooooeoook","kooooooooooooook",
+    "kkkkkkkkkkkkkkkk","................","................","................",
+];
+const RAW_IC_DEBRIS = [
+    "................","...ee...ee......","..eeee.eeee.....","...ee...ee......",
+    "......ee...ee...",".....eeee.eeee..","......ee...ee...","..kkkkkkkkkkkk..",
+    "..keeeeeeeeeek..","..keekkeekkeek..","..keeeeeeeeeek..","..kkkkkkkkkkkk..",
+    "................","................","................","................",
+];
+const RAW_IC_HEART = [
+    "................","...rrr...rrr....","..rrrrr.rrrrr...",".rrrrrrrrrrrrr..",
+    ".rrrrrrrrrrrrr..",".rrrrrrrrrrrrr..","..rrrrrrrrrrr...","...rrrrrrrrr....",
+    "....rrrrrrr.....",".....rrrrr......","......rrr.......",".......r........",
+    "................","................","................","................",
+];
+const RAW_IC_CHOKE = [
+    "................",".....ssssss.....","....ssssssss....","....sshsshss....",
+    "....ssssssss....","....ss.rr.ss....","....ssssssss....",".....ssssss.....",
+    "...ss.ssss.ss...","...sss.ss.sss...","....bbbbbbbb....","...bbbbbbbbbb...",
+    "...bbbbbbbbbb...","................","................","................",
+];
+const RAW_IC_BLOOD = [
+    ".......r........","......rrr.......","......rrr.......",".....rrrrr......",
+    ".....rrrrr......","....rrrrrrr.....","...rrrrrrrrr....","..rrrrrrrrrrr...",
+    "..rrrrwrrrrrr...","..rrrrrrrrrrr...","...rrrrrrrrr....","....rrrrrrr.....",
+    ".....rrrrr......","................","................","................",
+];
+const RAW_IC_SUN = [
+    ".......y........","...y...y...y....","....y.yyy.y.....",".....yyyyy......",
+    "....yyyyyyy.....","y..yyyyyyyyy..y.","...yyyyyyyyy....","...yyyyyyyyy....",
+    "y..yyyyyyyyy..y.","....yyyyyyy.....",".....yyyyy......","....y.yyy.y.....",
+    "...y...y...y....",".......y........","................","................",
+];
+const RAW_IC_PHONE = [
+    "....kkkkkkkk....","....kQQQQQQk....","....kQwwwwQk....","....kQwwwwQk....",
+    "....kQwrrwQk....","....kQwrrwQk....","....kQwwwwQk....","....kQwrrwQk....",
+    "....kQwwwwQk....","....kQwwwwQk....","....kQQQQQQk....","....kkkkkkkk....",
+    "................","................","................","................",
+];
+const RAW_IC_BAG = [
+    "................",".....kkkkkk.....","....k......k....","....k......k....",
+    "..kkkkkkkkkkkk..","..koooooooooek..","..koooooooooek..","..kooookkooook..",
+    "..koooooooooek..","..koooooooooek..","..koooooooooek..","..kkkkkkkkkkkk..",
+    "................","................","................","................",
+];
+const RAW_IC_FIST = [
+    "................","................","....kkkkkkk.....","...kssssssssk...",
+    "..ksskssksskkk..","..kssssssssssk..","..kssssssssssk..","..kssssssssssk..",
+    "...kssssssssk...","....kssssssk....","....kkkkkkkk....","................",
+    "................","................","................","................",
+];
+const RAW_IC_SPRAY = [
+    "................",".........r.r....","....kkk...r..r..","....kMk..r...r..",
+    "..kkkkkkk.......","..kPPPPPk.......","..kPwwwPk.......","..kPwwwPk.......",
+    "..kPPPPPk.......","..kPPPPPk.......","..kPPPPPk.......","..kkkkkkk.......",
+    "................","................","................","................",
+];
+/* --- badge --- */
+const RAW_BDG_FIRE = [
+    "....GGGGGGGG....","..GGGGGGGGGGGG..",".GGGGGGGGGGGGGG.","GGGGkkkkkkkkGGGG",
+    "GGGkkkkrrkkkkGGG","GGkkkkrrrrkkkkGG","GGkkkrryyrrkkkGG","GGkkkryyyyrkkkGG",
+    "GGkkkryyyyrkkkGG","GGkkkrryyrrkkkGG","GGkkkkrrrrkkkkGG","GGGkkkkrrkkkkGGG",
+    "GGGGkkkkkkkkGGGG",".GGGGGGGGGGGGGG.","..GGGGGGGGGGGG..","....GGGGGGGG....",
+];
+const RAW_BDG_QUAKE = [
+    "....GGGGGGGG....","..GGGGGGGGGGGG..",".GGGGGGGGGGGGGG.","GGGGkkkkkkkkGGGG",
+    "GGGkkkkbbkkkkGGG","GGkkkbbbbbbkkkGG","GGkbbAAbbAAbbkGG","GGkbbbbbbbbbbkGG",
+    "GGkbAAbbbbAAbkGG","GGkkbbbbbbbbkkGG","GGkkkbbbbbbkkkGG","GGGkkkkbbkkkkGGG",
+    "GGGGkkkkkkkkGGGG",".GGGGGGGGGGGGGG.","..GGGGGGGGGGGG..","....GGGGGGGG....",
+];
+const RAW_BDG_MED = [
+    "....GGGGGGGG....","..GGGGGGGGGGGG..",".GGGGGGGGGGGGGG.","GGGGkkkkkkkkGGGG",
+    "GGGkkkkwwkkkkGGG","GGkkkkkwwkkkkkGG","GGkkkkkwwkkkkkGG","GGkwwwwwwwwwwkGG",
+    "GGkwwwwwwwwwwkGG","GGkkkkkwwkkkkkGG","GGkkkkkwwkkkkkGG","GGGkkkkwwkkkkGGG",
+    "GGGGkkkkkkkkGGGG",".GGGGGGGGGGGGGG.","..GGGGGGGGGGGG..","....GGGGGGGG....",
+];
+const RAW_BDG_CRIME = [
+    "....GGGGGGGG....","..GGGGGGGGGGGG..",".GGGGGGGGGGGGGG.","GGGGkkkkkkkkGGGG",
+    "GGGkkkkyykkkkGGG","GGkkkkkyykkkkkGG","GGkyyyyyyyyyykGG","GGkkyyyyyyyykkGG",
+    "GGkkkyyyyyykkkGG","GGkkyyyyyyyykkGG","GGkkyykkkkyykkGG","GGGkykkkkkkykGGG",
+    "GGGGkkkkkkkkGGGG",".GGGGGGGGGGGGGG.","..GGGGGGGGGGGG..","....GGGGGGGG....",
+];
+const RAW_BDG_HERO = [
+    "....GGGGGGGG....","..GGGGGGGGGGGG..",".GGGGGGGGGGGGGG.","GGGGkkkkkkkkGGGG",
+    "GGGkkkkGGkkkkGGG","GGkkkkGGGGkkkkGG","GGkGGGGGGGGGGkGG","GGkkGGGGGGGGkkGG",
+    "GGkkkGGGGGGkkkGG","GGkkGGGGGGGGkkGG","GGkGGGkkkkGGGkGG","GGGkGkkkkkkGkGGG",
+    "GGGGkkkkkkkkGGGG",".GGGGGGGGGGGGGG.","..GGGGGGGGGGGG..","....GGGGGGGG....",
+];
 
 /* ---------- 2. SPRITE BUILDING HELPERS ---------- */
+// Pinapayagan ang maikling hilera: pupunan ng transparent para hindi masira ang art.
 function spr(rows){
     const arr = [];
-    for(const row of rows){ for(const ch of row) arr.push(CMAP[ch]); }
+    for(let y=0;y<16;y++){
+        const row = (rows[y] || '').padEnd(16,'.').slice(0,16);
+        for(const ch of row) arr.push(CMAP[ch] === undefined ? 0 : CMAP[ch]);
+    }
     return arr;
 }
 function renderSprite(pixelArray, overrides){
@@ -494,152 +887,913 @@ function renderSprite(pixelArray, overrides){
 }
 
 const PIX = {
-    lawn: spr(RAW_LAWN), tallgrass: spr(RAW_TALLGRASS), path: spr(RAW_PATH),
-    water1: spr(RAW_WATER1), water2: spr(RAW_WATER2), tree: spr(RAW_TREE), flower: spr(RAW_FLOWER),
-    roof: spr(RAW_ROOF), wallwindow: spr(RAW_WALLWINDOW), wallplain: spr(RAW_WALLPLAIN), door: spr(RAW_DOOR), sign: spr(RAW_SIGN),
-    player_down_0: spr(RAW_PLAYER_DOWN_0), player_down_1: spr(RAW_PLAYER_DOWN_1),
-    player_up_0: spr(RAW_PLAYER_UP_0), player_up_1: spr(RAW_PLAYER_UP_1),
-    player_left_0: spr(RAW_PLAYER_LEFT_0), player_left_1: spr(RAW_PLAYER_LEFT_1),
-    icon_quake: spr(RAW_ICON_QUAKE), icon_fire: spr(RAW_ICON_FIRE),
-    icon_med: spr(RAW_ICON_MED), icon_flood: spr(RAW_ICON_FLOOD), icon_crime: spr(RAW_ICON_CRIME),
+    lawn:spr(RAW_LAWN), tallgrass:spr(RAW_TALLGRASS), path:spr(RAW_PATH),
+    water1:spr(RAW_WATER1), water2:spr(RAW_WATER2), water3:spr(RAW_WATER3),
+    tree:spr(RAW_TREE), flower:spr(RAW_FLOWER), hedge:spr(RAW_HEDGE), dirt:spr(RAW_DIRT),
+    roadh:spr(RAW_ROADH), roadv:spr(RAW_ROADV), roadx:spr(RAW_ROADX),
+    plaza:spr(RAW_PLAZA), bridge:spr(RAW_BRIDGE), monument:spr(RAW_MONUMENT), sign:spr(RAW_SIGN),
+    roof:spr(RAW_ROOF), roofChurch:spr(RAW_ROOF_CHURCH), roofDome:spr(RAW_ROOF_DOME),
+    wallwindow:spr(RAW_WALLWINDOW), wallplain:spr(RAW_WALLPLAIN),
+    wallstonewin:spr(RAW_WALLSTONE_WIN), wallstone:spr(RAW_WALLSTONE), glasswall:spr(RAW_GLASSWALL),
+    door:spr(RAW_DOOR), glassdoor:spr(RAW_GLASSDOOR),
+    player_down_0:spr(RAW_PLAYER_DOWN_0), player_down_1:spr(RAW_PLAYER_DOWN_1),
+    player_up_0:spr(RAW_PLAYER_UP_0), player_up_1:spr(RAW_PLAYER_UP_1),
+    player_left_0:spr(RAW_PLAYER_LEFT_0), player_left_1:spr(RAW_PLAYER_LEFT_1),
+    ic_quake:spr(RAW_IC_QUAKE), ic_fire:spr(RAW_IC_FIRE), ic_med:spr(RAW_IC_MED),
+    ic_flood:spr(RAW_IC_FLOOD), ic_crime:spr(RAW_IC_CRIME), ic_gas:spr(RAW_IC_GAS),
+    ic_bolt:spr(RAW_IC_BOLT), ic_grass:spr(RAW_IC_GRASS), ic_building:spr(RAW_IC_BUILDING),
+    ic_typhoon:spr(RAW_IC_TYPHOON), ic_hill:spr(RAW_IC_HILL), ic_debris:spr(RAW_IC_DEBRIS),
+    ic_heart:spr(RAW_IC_HEART), ic_choke:spr(RAW_IC_CHOKE), ic_blood:spr(RAW_IC_BLOOD),
+    ic_sun:spr(RAW_IC_SUN), ic_phone:spr(RAW_IC_PHONE), ic_bag:spr(RAW_IC_BAG),
+    ic_fist:spr(RAW_IC_FIST), ic_spray:spr(RAW_IC_SPRAY),
+    bdg_fire:spr(RAW_BDG_FIRE), bdg_quake:spr(RAW_BDG_QUAKE), bdg_med:spr(RAW_BDG_MED),
+    bdg_crime:spr(RAW_BDG_CRIME), bdg_hero:spr(RAW_BDG_HERO),
 };
 
-const ROOF_COLORS = { 11:'#c0392b', 12:'#3a9b6e', 13:'#4a90d9', 14:'#e0a72e' };
-const NPC1_COLORS = { 6:'#3a9b6e', 7:'#e0a72e', 10:'#1c3d24' }; 
-const NPC2_COLORS = { 6:'#8e44ad', 7:'#e67e22', 10:'#2a1430' }; 
+// Mga kulay ng damit ng NPC (recolor ng batayang sprite — magaan sa memorya at mabilis)
+const NPC_STYLES = {
+    npc1:{6:'#3a9b6e',7:'#e0a72e',10:'#1c3d24'},
+    npc2:{6:'#8e44ad',7:'#e67e22',10:'#2a1430'},
+    student:{6:'#3b7dd8',7:'#ffffff',10:'#1c1c2e',19:'#2c3e6e'},
+    teacher:{6:'#8e44ad',7:'#f2f2f2',10:'#2a1430'},
+    driver:{6:'#e67e22',7:'#7f8c8d',10:'#2a1a10'},
+    police:{6:'#1f3a5f',7:'#2c4a7a',10:'#141420'},
+    fireman:{6:'#e0463a',7:'#c0392b',10:'#2a1010'},
+    nurse:{6:'#ffffff',7:'#eaf6ff',10:'#3a2a1a'},
+    doctor:{6:'#ffffff',7:'#ffffff',10:'#2e2030',19:'#4a4a5a'},
+    vendor:{6:'#e0a72e',7:'#c0392b',10:'#2e2030'},
+    tourist:{6:'#f7d51d',7:'#ff7aa8',10:'#5c3a1e'},
+    tanod:{6:'#3a9b6e',7:'#2f6f4f',10:'#1c1c2e'},
+    parent:{6:'#ff7aa8',7:'#d94f7a',10:'#2e2030'},
+    elder:{6:'#dddddd',7:'#9b917f',10:'#e8e8e8'},
+    churchgoer:{6:'#ffffff',7:'#6a5acd',10:'#2e2030'},
+    officer:{6:'#e0463a',7:'#1f3a5f',10:'#1c1c2e'},
+    rescue:{6:'#e0a72e',7:'#e0463a',10:'#1c1c2e'},
+    kid:{6:'#2ecc71',7:'#f7d51d',10:'#2a1a10'},
+    worker:{6:'#f2c94c',7:'#ff9f45',10:'#2a1a10'},
+    enforcer:{6:'#2c3e50',7:'#e8e8e8',10:'#1c1c2e'},
+};
 
 const IMG = {
-    lawn: renderSprite(PIX.lawn), tallgrass: renderSprite(PIX.tallgrass), path: renderSprite(PIX.path),
-    water1: renderSprite(PIX.water1), water2: renderSprite(PIX.water2), tree: renderSprite(PIX.tree), flower: renderSprite(PIX.flower),
-    wallwindow: renderSprite(PIX.wallwindow), wallplain: renderSprite(PIX.wallplain), door: renderSprite(PIX.door), sign: renderSprite(PIX.sign),
-    roof11: renderSprite(PIX.roof, {12:ROOF_COLORS[11]}), // Red (CDRRMO)
-    roof12: renderSprite(PIX.roof, {12:ROOF_COLORS[12]}), // Green (Med)
-    roof13: renderSprite(PIX.roof, {12:ROOF_COLORS[13]}), // Blue (Police)
-    roof14: renderSprite(PIX.roof, {12:ROOF_COLORS[14]}), // Yellow (Fire)
-    player_down_0: renderSprite(PIX.player_down_0), player_down_1: renderSprite(PIX.player_down_1),
-    player_up_0: renderSprite(PIX.player_up_0), player_up_1: renderSprite(PIX.player_up_1),
-    player_left_0: renderSprite(PIX.player_left_0), player_left_1: renderSprite(PIX.player_left_1),
-    npc1_down_0: renderSprite(PIX.player_down_0, NPC1_COLORS), npc1_down_1: renderSprite(PIX.player_down_1, NPC1_COLORS),
-    npc1_up_0: renderSprite(PIX.player_up_0, NPC1_COLORS), npc1_left_0: renderSprite(PIX.player_left_0, NPC1_COLORS),
-    npc2_down_0: renderSprite(PIX.player_down_0, NPC2_COLORS), npc2_down_1: renderSprite(PIX.player_down_1, NPC2_COLORS),
-    npc2_up_0: renderSprite(PIX.player_up_0, NPC2_COLORS), npc2_left_0: renderSprite(PIX.player_left_0, NPC2_COLORS),
-    icon_quake: renderSprite(PIX.icon_quake), icon_fire: renderSprite(PIX.icon_fire),
-    icon_med: renderSprite(PIX.icon_med), icon_flood: renderSprite(PIX.icon_flood), icon_crime: renderSprite(PIX.icon_crime),
+    lawn:renderSprite(PIX.lawn), tallgrass:renderSprite(PIX.tallgrass), path:renderSprite(PIX.path),
+    water1:renderSprite(PIX.water1), water2:renderSprite(PIX.water2), water3:renderSprite(PIX.water3),
+    tree:renderSprite(PIX.tree), flower:renderSprite(PIX.flower), hedge:renderSprite(PIX.hedge),
+    dirt:renderSprite(PIX.dirt), roadh:renderSprite(PIX.roadh), roadv:renderSprite(PIX.roadv),
+    roadx:renderSprite(PIX.roadx), plaza:renderSprite(PIX.plaza), bridge:renderSprite(PIX.bridge),
+    monument:renderSprite(PIX.monument), sign:renderSprite(PIX.sign),
+    wallwindow:renderSprite(PIX.wallwindow), wallplain:renderSprite(PIX.wallplain),
+    wallstonewin:renderSprite(PIX.wallstonewin), wallstone:renderSprite(PIX.wallstone),
+    glasswall:renderSprite(PIX.glasswall), door:renderSprite(PIX.door), glassdoor:renderSprite(PIX.glassdoor),
+    player_down_0:renderSprite(PIX.player_down_0), player_down_1:renderSprite(PIX.player_down_1),
+    player_up_0:renderSprite(PIX.player_up_0), player_up_1:renderSprite(PIX.player_up_1),
+    player_left_0:renderSprite(PIX.player_left_0), player_left_1:renderSprite(PIX.player_left_1),
 };
-const ROOF_IMG = {11:IMG.roof11, 12:IMG.roof12, 13:IMG.roof13, 14:IMG.roof14};
+['ic_quake','ic_fire','ic_med','ic_flood','ic_crime','ic_gas','ic_bolt','ic_grass','ic_building',
+ 'ic_typhoon','ic_hill','ic_debris','ic_heart','ic_choke','ic_blood','ic_sun','ic_phone','ic_bag',
+ 'ic_fist','ic_spray','bdg_fire','bdg_quake','bdg_med','bdg_crime','bdg_hero'].forEach(function(k){
+    IMG[k] = renderSprite(PIX[k]);
+});
+for(const key in NPC_STYLES){
+    const cols = NPC_STYLES[key];
+    IMG[key+'_down_0'] = renderSprite(PIX.player_down_0, cols);
+    IMG[key+'_down_1'] = renderSprite(PIX.player_down_1, cols);
+    IMG[key+'_up_0']   = renderSprite(PIX.player_up_0, cols);
+    IMG[key+'_up_1']   = renderSprite(PIX.player_up_1, cols);
+    IMG[key+'_left_0'] = renderSprite(PIX.player_left_0, cols);
+    IMG[key+'_left_1'] = renderSprite(PIX.player_left_1, cols);
+}
+// Cache ng tinted na icon (para may sariling mukha ang magkakapatid na insidente)
+const tintCache = {};
+function iconImg(name, tint){
+    if(!PIX[name]) name = 'ic_quake';
+    if(!tint) return IMG[name];
+    const key = name + '|' + JSON.stringify(tint);
+    if(!tintCache[key]) tintCache[key] = renderSprite(PIX[name], tint);
+    return tintCache[key];
+}
+// Cache ng bubong ayon sa kulay ng gusali
+const roofCache = {};
+function roofImg(color, kind){
+    const key = (kind||'plain') + '|' + color;
+    if(!roofCache[key]){
+        const pix = kind==='church' ? PIX.roofChurch : kind==='dome' ? PIX.roofDome : PIX.roof;
+        roofCache[key] = renderSprite(pix, {12:color});
+    }
+    return roofCache[key];
+}
 
-/* ---------- 3. MAP DATA (20x15 tiles) ---------- */
-// 0 path | 1 lawn | 2 tall grass (encounter) | 3 tree | 4 water | 5 flower | 6 sign
-// building tiles: floor(v/10) -> 11 CDRRMO / 12 Police / 13 Med / 14 Fire
-const mapData = [
-    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
-    [3,1,110,110,110,110,1,1,1,1,1,1,1,130,130,130,130,1,1,3],
-    [3,1,111,111,111,111,1,1,1,5,1,1,1,131,131,131,131,1,1,3],
-    [3,1,112,113,112,112,6,1,1,1,1,1,1,132,133,132,132,1,1,3],
-    [3,1,1,0,5,1,1,1,1,1,1,2,2,2,0,5,1,1,1,3],
-    [3,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,2,3],
-    [3,1,1,0,1,1,1,1,4,4,4,1,1,1,0,1,1,2,2,3],
-    [3,1,1,0,1,1,1,1,4,4,4,1,1,1,0,1,1,2,2,3],
-    [3,1,1,0,1,1,1,1,4,4,4,1,1,1,0,1,6,1,1,3],
-    [3,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,3],
-    [3,1,120,120,120,120,1,1,1,1,1,1,1,140,140,140,140,1,1,3],
-    [3,1,121,121,121,121,2,2,2,1,1,1,1,141,141,141,141,1,1,3],
-    [3,1,122,123,122,122,2,2,2,5,1,1,1,142,143,142,142,1,1,3],
-    [3,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,3],
-    [3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3,3],
+/* ---------- 3. NILALAMAN: KATEGORYA AT MGA INSIDENTE ---------- */
+const CATS = {
+    sunog:     {name:'Sunog', short:'SUNOG', badge:'Bantay Sunog Badge',
+                badgeIcon:'bdg_fire',  color:'#e0463a',
+                desc:'Pag-iwas at tamang pagtugon sa iba’t ibang uri ng sunog.'},
+    kalamidad: {name:'Lindol at Baha', short:'KALAMIDAD', badge:'Kahandaan Badge',
+                badgeIcon:'bdg_quake', color:'#4a7fd6',
+                desc:'Paghahanda sa lindol, bagyo, baha at pagguho ng lupa.'},
+    medikal:   {name:'Medikal', short:'MEDIKAL', badge:'Tagapagligtas Badge',
+                badgeIcon:'bdg_med',   color:'#3a9b6e',
+                desc:'Unang lunas sa mga medikal na kagipitan.'},
+    krimen:    {name:'Kaligtasan sa Krimen', short:'KRIMEN', badge:'Bantay Bayan Badge',
+                badgeIcon:'bdg_crime', color:'#e0a72e',
+                desc:'Pag-iwas sa krimen, scam at pang-aapi sa komunidad.'},
+};
+const CAT_ORDER = ['sunog','kalamidad','medikal','krimen'];
+
+/* Bawat insidente: 1 tamang sagot + 2 maling sagot na may paliwanag kung bakit delikado.
+   fx: 'ember' | 'shake' | 'rain' | null  -> epekto sa screen tuwing laban. */
+const INCIDENTS = [
+/* ===== SUNOG (7) ===== */
+{ id:'kusina', cat:'sunog', name:'Sunog sa Kusina', icon:'ic_fire', fx:'ember', bg:'bg-fire',
+  intro:'Nagliyab ang mantika sa kawali!\nLumitaw ang SUNOG SA KUSINA!',
+  dex:{ano:'Sunog na nagsisimula sa mantika o kalan habang nagluluto.',
+       tanda:'Umuusok na mantika, amoy sunog, matinding init sa kawali.',
+       tugon:'Patayin ang kalan, takpan ang kawali ng metal na takip o basang tela, at huwag itong buksan hangga’t hindi lumalamig.'},
+  opts:[
+    {t:'Takpan ng metal na takip at patayin ang kalan', ok:true,
+     m:'Tama! Nawalan ng oxygen ang apoy kaya namatay ito.\nTandaan: takip muna, hindi tubig.'},
+    {t:'Buhusan ng tubig ang nagliliyab na mantika',
+     m:'Delikado! Bumababa ang tubig sa ilalim ng mantika at biglang sumasabog bilang singaw — lalong lumalaki ang apoy at maaari kang mapaso sa mukha.\nDapat: takpan ng metal na takip at patayin ang kalan.'},
+    {t:'Buhatin ang kawali palabas ng bahay',
+     m:'Delikado! Madaling matapon ang nagliliyab na mantika sa braso mo at sa daanan — kakalat ang apoy.\nDapat: iwan ang kawali sa kalan at takpan ito.'},
+  ]},
+{ id:'kuryente', cat:'sunog', name:'Sunog sa Kuryente', icon:'ic_bolt', fx:'ember', bg:'bg-fire',
+  intro:'May kumikislap na saksakan sa dingding!\nLumitaw ang SUNOG SA KURYENTE!',
+  dex:{ano:'Sunog na dulot ng sira o overloaded na linya ng kuryente.',
+       tanda:'Amoy nasusunog na plastik, kumikislap na saksakan, mainit na extension cord.',
+       tugon:'Patayin ang main breaker, gumamit ng Class C fire extinguisher o dry chemical, at tumawag sa BFP.'},
+  opts:[
+    {t:'Patayin ang main breaker bago apulahin', ok:true,
+     m:'Tama! Kapag walang kuryente, ligtas nang lapitan ang apoy.\nGumamit ng Class C extinguisher at tumawag sa BFP.'},
+    {t:'Buhusan agad ng tubig ang saksakan',
+     m:'Delikado! Ang tubig ay conductor ng kuryente — maaari kang makuryente lalo na kung basa ang sahig.\nDapat: patayin muna ang main breaker.'},
+    {t:'Hilahin ang mainit na cord gamit ang kamay',
+     m:'Delikado! Puwede kang mapaso at makuryente kapag nahawakan mo ang sirang insulasyon.\nDapat: breaker muna, huwag hahawak.'},
+  ]},
+{ id:'lpg', cat:'sunog', name:'Tagas ng LPG', icon:'ic_gas', fx:'ember', bg:'bg-fire',
+  intro:'Umaalingasaw ang amoy ng gas sa kusina!\nLumitaw ang TAGAS NG LPG!',
+  dex:{ano:'Pagtagas ng liquefied petroleum gas mula sa tangke, regulator o hose.',
+       tanda:'Amoy tulad ng bulok na itlog, tunog na sumisitsit, hamog sa paligid ng tangke.',
+       tugon:'Isara ang balbula, buksan ang mga bintana at pinto, huwag pindutin ang anumang switch, lumabas at tumawag sa BFP.'},
+  opts:[
+    {t:'Isara ang balbula, buksan ang bintana, lumabas', ok:true,
+     m:'Tama! Naputol mo ang pinagmumulan at pinalabas ang naipong gas nang walang kislap.\nTumawag sa BFP mula sa labas ng bahay.'},
+    {t:'Sindihan ang posporo para makita ang tagas',
+     m:'Delikado! Kahit maliit na apoy ay sapat nang magpasabog sa naipong gas.\nDapat: isara ang balbula at buksan ang bintana — walang apoy, walang kislap.'},
+    {t:'Buksan ang exhaust fan at ilaw',
+     m:'Delikado! Ang switch ay gumagawa ng maliit na kislap sa loob — puwedeng mag-ignite ang gas.\nDapat: huwag galawin ang switch; natural na bentilasyon lang.'},
+  ]},
+{ id:'kandila', cat:'sunog', name:'Sunog mula sa Kandila', icon:'ic_fire', tint:{6:'#e67e22'}, fx:'ember', bg:'bg-fire',
+  intro:'Brownout! May nakasinding kandila malapit sa kurtina.\nLumitaw ang SUNOG MULA SA KANDILA!',
+  dex:{ano:'Sunog na nagsisimula sa kandilang naiwang nakasindi o nakalapit sa madaling masunog.',
+       tanda:'Kandilang walang matibay na lalagyan, malapit sa kurtina, papel o kama.',
+       tugon:'Gumamit ng flashlight o emergency light. Kung kandila lang ang meron, ilagay sa matibay na lalagyan, ilayo sa tela, at patayin bago matulog.'},
+  opts:[
+    {t:'Patayin ang kandila at gumamit ng flashlight', ok:true,
+     m:'Tama! Ang flashlight ay ligtas na liwanag tuwing brownout.\nIsama ito sa go bag ng pamilya.'},
+    {t:'Ilipat ang kandila sa tabi ng bintana',
+     m:'Delikado! Hihipan ng hangin ang apoy patungo sa kurtina.\nDapat: patayin ito at gumamit ng flashlight.'},
+    {t:'Iwanan itong nakasindi habang natutulog',
+     m:'Delikado! Marami sa nasusunog na bahay tuwing brownout ay dahil sa naiwang kandila.\nDapat: patayin ang kandila bago matulog.'},
+  ]},
+{ id:'appliance', cat:'sunog', name:'Sunog sa Appliance', icon:'ic_bolt', tint:{17:'#ff9f45'}, fx:'ember', bg:'bg-fire',
+  intro:'Umuusok ang extension cord na puno ng saksak!\nLumitaw ang SUNOG SA APPLIANCE!',
+  dex:{ano:'Sunog dulot ng octopus connection o overload sa isang saksakan.',
+       tanda:'Mainit o natutunaw na extension cord, paulit-ulit na tumatalon ang breaker, amoy sunog.',
+       tugon:'Bawasan ang saksak, huwag mag-octopus connection, at gumamit ng extension cord na may tamang rating.'},
+  opts:[
+    {t:'Patayin ang breaker at bawasan ang mga saksak', ok:true,
+     m:'Tama! Ang overload ang isa sa pangunahing sanhi ng sunog sa mga tahanan.\nIsang malaking appliance kada saksakan.'},
+    {t:'Magdagdag pa ng isang extension cord',
+     m:'Delikado! Lalong iinit ang linya at mas mabilis matutunaw ang insulasyon.\nDapat: bawasan ang saksak at patayin ang breaker.'},
+    {t:'Basain ang cord para lumamig',
+     m:'Delikado! May kuryente pa ring dumadaloy — puwede kang makuryente.\nDapat: patayin ang breaker bago gumawa ng kahit ano.'},
+  ]},
+{ id:'damo', cat:'sunog', name:'Sunog sa Damuhan', icon:'ic_grass', fx:'ember', bg:'bg-fire',
+  intro:'Kumakalat ang apoy sa tuyong damo ng bakanteng lote!\nLumitaw ang SUNOG SA DAMUHAN!',
+  dex:{ano:'Sunog sa tuyong damo o basura sa bakanteng lote, karaniwan tuwing tag-init.',
+       tanda:'Makapal na usok, tuyong damo, malakas na hangin, sinusunog na basura.',
+       tugon:'Tumawag agad sa BFP Malolos o 911, lumayo nang pahalang sa direksyon ng hangin, at balaan ang mga kapitbahay.'},
+  opts:[
+    {t:'Tumawag sa BFP at lumayo nang pahalang sa hangin', ok:true,
+     m:'Tama! Mas mabilis kumalat ang apoy kaysa sa takbo ng tao kapag malakas ang hangin.\nBFP Malolos: (044) 791-2555 o 911.'},
+    {t:'Paluin ang apoy ng damit habang malakas ang hangin',
+     m:'Delikado! Kapag malakas ang hangin, mabilis kumalat ang apoy at maaari kang malibot nito.\nDapat: tumawag sa BFP at lumayo.'},
+    {t:'Mag-video muna para may ebidensya',
+     m:'Delikado! Nauubos ang oras habang lumalaki ang apoy at maaari kang malanghap ng usok.\nDapat: tumawag agad sa BFP saka lumayo.'},
+  ]},
+{ id:'gusali', cat:'sunog', name:'Sunog sa Gusali', icon:'ic_building', fx:'ember', bg:'bg-fire',
+  intro:'Kumakapal ang usok sa hagdanan ng gusali!\nLumitaw ang SUNOG SA GUSALI!',
+  dex:{ano:'Sunog sa loob ng paaralan, mall, opisina o maraming palapag na gusali.',
+       tanda:'Alarma, makapal na usok sa kisame, mainit na pinto, amoy sunog.',
+       tugon:'Gumapang sa ilalim ng usok, kapain ang pinto bago buksan, gamitin ang fire exit at hagdan — hindi elevator — at pumunta sa assembly area.'},
+  opts:[
+    {t:'Gumapang sa ilalim ng usok at gamitin ang hagdan', ok:true,
+     m:'Tama! Mas malinis ang hangin sa ibaba at ligtas ang fire exit.\nHuwag nang bumalik sa loob.'},
+    {t:'Sumakay sa elevator para mas mabilis',
+     m:'Delikado! Puwedeng mawalan ng kuryente ang elevator at maipit ka, o bumukas ito sa palapag na may apoy.\nDapat: hagdan at fire exit palagi.'},
+    {t:'Bumalik sa kuwarto para kunin ang gamit',
+     m:'Delikado! Sa loob ng ilang segundo ay maaaring mapuno ng nakakalasong usok ang pasilyo.\nDapat: lumabas agad at huwag nang bumalik.'},
+  ]},
+
+/* ===== LINDOL AT BAHA (7) ===== */
+{ id:'lindol', cat:'kalamidad', name:'Malakas na Lindol', icon:'ic_quake', fx:'shake',
+  intro:'Biglang umuga ang lupa nang napakalakas!\nLumitaw ang MALAKAS NA LINDOL!',
+  dex:{ano:'Biglaang pag-uga ng lupa dulot ng paggalaw ng fault.',
+       tanda:'Malakas na pag-uga, kumakalampag na bintana, nahuhulog na gamit.',
+       tugon:'Duck, Cover, and Hold — Yumuko, Kumanlong sa ilalim ng matibay na mesa, at Kumapit hanggang tumigil ang pag-uga.'},
+  opts:[
+    {t:'Duck, Cover, and Hold sa ilalim ng mesa', ok:true,
+     m:'Tama! Naiwasan mo ang panganib ng nahuhulog na bagay.\nKapag tumigil na, lumabas nang maayos patungo sa open area.'},
+    {t:'Tumakbo palabas habang umuuga pa',
+     m:'Delikado! Karamihan ng nasusugatan ay natatamaan ng nahuhulog na debris at nabubuwal habang tumatakbo.\nDapat: Duck, Cover, Hold hanggang tumigil ang pag-uga.'},
+    {t:'Tumayo sa tabi ng malaking bintana',
+     m:'Delikado! Nababasag ang salamin at maaaring tumama sa iyo.\nDapat: kumanlong sa ilalim ng matibay na mesa, malayo sa salamin.'},
+  ]},
+{ id:'aftershock', cat:'kalamidad', name:'Aftershock', icon:'ic_quake', tint:{9:'#8e6a3a'}, fx:'shake',
+  intro:'Muling umuga ang lupa matapos ang malakas na lindol!\nLumitaw ang AFTERSHOCK!',
+  dex:{ano:'Mas mahihinang pag-uga na sumusunod sa pangunahing lindol; maaaring tumagal ng ilang araw.',
+       tanda:'Paulit-ulit na maiikling pag-uga, lalong lumalaking bitak sa pader.',
+       tugon:'Manatili sa bukas at ligtas na lugar, iwasan ang nasirang gusali, at makinig sa opisyal na anunsyo ng CDRRMO.'},
+  opts:[
+    {t:'Manatili sa open area at makinig sa CDRRMO', ok:true,
+     m:'Tama! Puwedeng gumuho ang napinsalang gusali kahit sa mahinang aftershock.\nHintayin ang go signal bago pumasok muli.'},
+    {t:'Bumalik agad sa loob ng nabitak na gusali',
+     m:'Delikado! Mahina na ang estruktura at kayang ibagsak ng aftershock ang natitirang bahagi.\nDapat: manatili sa labas hanggang may clearance.'},
+    {t:'Balewalain — mahina lang naman',
+     m:'Delikado! Ang mahinang pag-uga ay maaaring magpabagsak ng nakabitin na bubong o pader.\nDapat: lumayo sa mga nasirang bahagi at maging alerto.'},
+  ]},
+{ id:'flashflood', cat:'kalamidad', name:'Biglaang Baha', icon:'ic_flood', fx:'rain', bg:'bg-water',
+  intro:'Mabilis na tumataas ang tubig sa kalsada!\nLumitaw ang BIGLAANG BAHA!',
+  dex:{ano:'Mabilis na pagtaas ng tubig sa loob ng ilang minuto dulot ng malakas na ulan.',
+       tanda:'Malakas at matagal na ulan, barado ang kanal, mabilis na umaagos na tubig.',
+       tugon:'Lumikas agad sa mataas na lugar, huwag tumawid sa umaagos na tubig, at patayin ang main switch bago umalis.'},
+  opts:[
+    {t:'Lumikas sa mataas na lugar, patayin ang switch', ok:true,
+     m:'Tama! Ligtas ka sa agos at sa panganib ng pagkakuryente.\nDala ang go bag at mahahalagang dokumento.'},
+    {t:'Tumawid sa umaagos na baha',
+     m:'Delikado! Kayang patumbahin ng anim na pulgadang umaagos na tubig ang isang tao, at maaaring may bukas na kanal sa ilalim.\nDapat: huwag tumawid — maghanap ng mas mataas na daan.'},
+    {t:'Maglaro at maligo sa baha',
+     m:'Delikado! Ang baha ay may dumi, langis at ihi ng daga na nagdudulot ng leptospirosis.\nDapat: umiwas sa tubig-baha at maghugas agad kung nabasa.'},
+  ]},
+{ id:'ilog', cat:'kalamidad', name:'Pag-apaw ng Ilog', icon:'ic_flood', tint:{7:'#3a7a5a'}, fx:'rain', bg:'bg-water',
+  intro:'Umaapaw na ang ilog sa gilid ng barangay!\nLumitaw ang PAG-APAW NG ILOG!',
+  dex:{ano:'Pag-apaw ng tubig-ilog sa mga karatig-barangay tuwing tag-ulan o high tide.',
+       tanda:'Mabilis na pagtaas ng lebel ng ilog, maputik na tubig, babala ng barangay at CDRRMO.',
+       tugon:'Sumunod sa maagang paglikas, itaas ang gamit, isama ang alagang hayop, at pumunta sa itinalagang evacuation center.'},
+  opts:[
+    {t:'Lumikas nang maaga sa evacuation center', ok:true,
+     m:'Tama! Ang maagang paglikas ang pinakaligtas na desisyon.\nSundin ang tagubilin ng barangay at CDRRMO Malolos.'},
+    {t:'Hintaying umabot sa tuhod bago lumikas',
+     m:'Delikado! Kapag mataas na ang tubig ay mahirap nang makapasok ang rescue at madilim na sa gabi.\nDapat: lumikas agad sa unang babala.'},
+    {t:'Manatili sa bahay para bantayan ang gamit',
+     m:'Delikado! Napapalitan ang gamit, ang buhay ay hindi.\nDapat: itaas ang gamit at lumikas agad.'},
+  ]},
+{ id:'bagyo', cat:'kalamidad', name:'Baha dulot ng Bagyo', icon:'ic_typhoon', fx:'rain', bg:'bg-water',
+  intro:'Signal No. 3! Malakas ang hangin at ulan.\nLumitaw ang BAHA DULOT NG BAGYO!',
+  dex:{ano:'Pagbaha at pinsala dulot ng malakas na hangin at tuloy-tuloy na ulan ng bagyo.',
+       tanda:'Babala ng PAGASA, tumataas na signal number, malakas na hangin at ulan.',
+       tugon:'Manatili sa loob ng matibay na gusali, ihanda ang go bag at radyo, at iwasan ang nakalaylay na kable.'},
+  opts:[
+    {t:'Manatili sa loob at makinig sa opisyal na balita', ok:true,
+     m:'Tama! Ang go bag, tubig, pagkain, radyo at flashlight ang kasama mo.\nHintayin ang anunsyo bago lumabas.'},
+    {t:'Lumabas para mag-video ng malalaking alon',
+     m:'Delikado! Maaari kang tangayin ng storm surge o matamaan ng lumilipad na yero.\nDapat: manatili sa loob hanggang tapos ang bagyo.'},
+    {t:'Magpatuloy sa biyahe kahit malakas ang ulan',
+     m:'Delikado! Puwede kang maabutan ng baha sa daan at hindi na makabalik.\nDapat: ipagpaliban ang biyahe at manatili sa ligtas na lugar.'},
+  ]},
+{ id:'landslide', cat:'kalamidad', name:'Panganib ng Landslide', icon:'ic_hill', fx:'shake',
+  intro:'May bumagsak na lupa sa gilid ng pilapil!\nLumitaw ang PANGANIB NG LANDSLIDE!',
+  dex:{ano:'Pagguho ng lupa o pilapil dulot ng tuloy-tuloy na ulan o lindol.',
+       tanda:'Bitak sa lupa, maputik na tubig sa kanal, tumatabingi na poste at puno, kaluskos sa gilid ng burol.',
+       tugon:'Lumayo agad sa paanan ng slope, lumikas patungo sa matibay at patag na lugar, at i-report sa barangay at CDRRMO.'},
+  opts:[
+    {t:'Lumikas agad palayo sa paanan ng slope', ok:true,
+     m:'Tama! Ang mga bitak at maputik na tubig ay maagang babala ng pagguho.\nI-report agad sa barangay at CDRRMO.'},
+    {t:'Manatili sa paanan at manood',
+     m:'Delikado! Ang pagguho ay mabilis at halos walang babala sa huling sandali.\nDapat: lumayo agad sa direksyon ng pagguho.'},
+    {t:'Matulog muna, bukas na lumikas',
+     m:'Delikado! Maraming pagguho ang nangyayari sa gabi habang tulog ang mga tao.\nDapat: lumikas agad sa unang senyales.'},
+  ]},
+{ id:'debris', cat:'kalamidad', name:'Nahuhulog na Debris', icon:'ic_debris', fx:'shake',
+  intro:'May bumabagsak na semento mula sa lumang gusali!\nLumitaw ang NAHUHULOG NA DEBRIS!',
+  dex:{ano:'Nahuhulog na bahagi ng gusali, karatula o salamin tuwing lindol o malakas na hangin.',
+       tanda:'Nabibitak na pader, umuugang karatula, tinatangay na yero.',
+       tugon:'Takpan ang ulo at leeg gamit ang bag o braso, at lumayo sa gilid ng gusali patungo sa bukas na lugar.'},
+  opts:[
+    {t:'Takpan ang ulo at pumunta sa bukas na lugar', ok:true,
+     m:'Tama! Ang ulo at leeg ang pinakamahalagang protektahan.\nManatili sa open area hanggang ligtas.'},
+    {t:'Tumakbo nang nakadikit sa pader',
+     m:'Delikado! Doon mismo bumabagsak ang debris mula sa itaas.\nDapat: lumayo sa gusali at takpan ang ulo.'},
+    {t:'Sumilong sa may malaking salamin',
+     m:'Delikado! Ang salamin ang unang nababasag at pinakamatalim.\nDapat: lumayo sa salamin at karatula.'},
+  ]},
+
+/* ===== MEDIKAL (8) ===== */
+{ id:'puso', cat:'medikal', name:'Atake sa Puso', icon:'ic_heart',
+  intro:'May matandang bumagsak habang hawak ang dibdib!\nLumitaw ang ATAKE SA PUSO!',
+  dex:{ano:'Nabarahan ang daluyan ng dugo papunta sa puso.',
+       tanda:'Matinding sakit o paninikip ng dibdib, sakit na kumakalat sa braso, panga o likod, malamig na pawis, hirap huminga.',
+       tugon:'Tumawag agad sa 911 o Bulacan Medical Center (044) 791-0630, paupuin nang komportable, luwagan ang damit, at maghandang mag-CPR kung mawalan ng malay at hininga.'},
+  opts:[
+    {t:'Tumawag sa 911 at paupuin nang komportable', ok:true,
+     m:'Tama! Bawat minuto ay mahalaga sa atake sa puso.\nBantayan ang paghinga at maghanda para sa CPR.'},
+    {t:'Painumin ng malamig na tubig',
+     m:'Delikado! Maaari siyang masamid kung humihina na ang malay.\nDapat: tumawag agad ng tulong at huwag muna painumin.'},
+    {t:'Hilutin ang dibdib para mabawasan ang sakit',
+     m:'Delikado! Walang naitutulong ang paghilot at nauubos ang oras na dapat sana ay tumatawag ka na ng ambulansya.\nDapat: tumawag agad sa 911.'},
+  ]},
+{ id:'stroke', cat:'medikal', name:'Stroke', icon:'ic_heart', tint:{6:'#8e44ad'},
+  intro:'Biglang napilipit ang mukha ng isang tao at nautal ang salita!\nLumitaw ang STROKE!',
+  dex:{ano:'Naputol o pumutok na daluyan ng dugo sa utak.',
+       tanda:'FAST — Face (baluktot na ngiti), Arms (bumabagsak na braso), Speech (utal na salita), Time (tandaan ang oras).',
+       tugon:'Tandaan ang eksaktong oras ng simula ng sintomas at tumawag agad ng ambulansya. Huwag bigyan ng pagkain o inumin.'},
+  opts:[
+    {t:'Gamitin ang FAST, tumawag agad, tandaan ang oras', ok:true,
+     m:'Tama! Ang oras ng simula ang basehan ng doktor sa gamot.\nMabilis masira ang utak — mabilis na tugon ang kailangan.'},
+    {t:'Bigyan ng pagkain at inumin para lumakas',
+     m:'Delikado! Hindi makalunok nang maayos ang pasyenteng may stroke at maaaring pumasok ang pagkain sa baga.\nDapat: huwag pakainin, tumawag agad.'},
+    {t:'Ihiga at pahingahin, baka mawala rin',
+     m:'Delikado! Bawat minutong lumilipas ay milyon-milyong selula ng utak ang namamatay.\nDapat: tumawag agad ng ambulansya.'},
+  ]},
+{ id:'samid', cat:'medikal', name:'Nasamid', icon:'ic_choke',
+  intro:'May batang hindi makahinga at hawak ang leeg!\nLumitaw ang NASAMID!',
+  dex:{ano:'Nabarahan ang daanan ng hangin dahil sa pagkain o maliit na bagay.',
+       tanda:'Hawak ang leeg, hindi makasalita o makaubo, namumutla o namamasa ang labi.',
+       tugon:'Kung hindi na makaubo: 5 back blow sa pagitan ng talim ng balikat, saka 5 abdominal thrust (Heimlich). Sa sanggol, back blows at chest thrust.'},
+  opts:[
+    {t:'Back blows at abdominal thrust (Heimlich)', ok:true,
+     m:'Tama! Napalabas ang bumabara sa daanan ng hangin.\nIpasuri pa rin siya sa ospital pagkatapos.'},
+    {t:'Painumin ng tubig para maipasok ang pagkain',
+     m:'Delikado! Lalo lang babara ang daanan ng hangin at maaaring mapunta sa baga ang tubig.\nDapat: back blows at abdominal thrust.'},
+    {t:'Ipasok ang daliri sa lalamunan para hanapin',
+     m:'Delikado! Mas maitutulak mo pa palalim ang bumabara.\nDapat: back blows muna at abdominal thrust.'},
+  ]},
+{ id:'dugo', cat:'medikal', name:'Matinding Pagdurugo', icon:'ic_blood',
+  intro:'May malalim na sugat na tuloy-tuloy ang dugo!\nLumitaw ang MATINDING PAGDURUGO!',
+  dex:{ano:'Mabilis na pagkawala ng dugo mula sa malalim na sugat.',
+       tanda:'Tuloy-tuloy o umaalpas na dugo, namumutla, panghihina, mabilis na tibok ng puso.',
+       tugon:'Diretsong presyon gamit ang malinis na tela nang tuloy-tuloy, itaas ang bahaging nasugatan kung kaya, at tumawag ng tulong.'},
+  opts:[
+    {t:'Diretsong presyon ng malinis na tela at tumawag', ok:true,
+     m:'Tama! Ang tuloy-tuloy na presyon ang pinakamabisang paraan.\nHuwag alisin ang unang tela — dagdagan na lang kung mabasa.'},
+    {t:'Lagyan ng toothpaste o kape ang sugat',
+     m:'Delikado! Nagdudulot ito ng impeksyon at nahihirapan ang doktor na linisin ang sugat.\nDapat: malinis na tela at diretsong presyon.'},
+    {t:'Higpitan agad ng tourniquet ang buong braso',
+     m:'Delikado! Ang maling paggamit ng tourniquet ay puwedeng makasira ng ugat at kalamnan. Huling opsyon lang ito kung hindi tumitigil ang dugo sa presyon.\nDapat: diretsong presyon muna.'},
+  ]},
+{ id:'heat', cat:'medikal', name:'Heat Stroke', icon:'ic_sun',
+  intro:'May estudyanteng nahilo sa init ng palaruan!\nLumitaw ang HEAT STROKE!',
+  dex:{ano:'Mapanganib na pag-init ng katawan dahil sa sobrang init at kawalan ng tubig.',
+       tanda:'Napakainit at tuyong balat, sakit ng ulo, pagkalito, pagsusuka, mabilis na pulso.',
+       tugon:'Ilipat sa malilim, alisin ang sobrang damit, palamigin ng basang tela o pamaypay, painumin ng tubig kung may malay, at tumawag ng tulong.'},
+  opts:[
+    {t:'Ilipat sa malilim at palamigin ang katawan', ok:true,
+     m:'Tama! Ang mabilis na pagpapalamig ang pinakamahalaga.\nTumawag pa rin ng medical assistance.'},
+    {t:'Painumin ng malamig na softdrink o energy drink',
+     m:'Delikado! Ang matamis at may caffeine na inumin ay nakakadagdag sa dehydration.\nDapat: malinis na tubig at pagpapalamig sa lilim.'},
+    {t:'Hayaang magpahinga sa ilalim ng araw',
+     m:'Delikado! Patuloy na iinit ang katawan at maaaring magdulot ng pinsala sa utak.\nDapat: ilipat agad sa malilim at palamigin.'},
+  ]},
+{ id:'bali', cat:'medikal', name:'Bali ng Buto', icon:'ic_med', tint:{6:'#8a5a2c'},
+  intro:'May nadapa at hindi maigalaw ang braso!\nLumitaw ang BALI NG BUTO!',
+  dex:{ano:'Pagkabali o pagkabitak ng buto dulot ng pagkahulog o pagkabangga.',
+       tanda:'Matinding sakit, pamamaga, hindi normal na hugis, hindi maigalaw ang bahagi.',
+       tugon:'Huwag igalaw o itama ang buto. I-splint o suportahan ito sa kinalalagyan, lagyan ng malamig na compress, at dalhin sa ospital.'},
+  opts:[
+    {t:'I-splint sa kinalalagyan at dalhin sa ospital', ok:true,
+     m:'Tama! Ang immobilization ay pumipigil sa dagdag na pinsala.\nMalamig na compress para sa pamamaga.'},
+    {t:'Ipahilot para maibalik sa lugar ang buto',
+     m:'Delikado! Maaaring masira ang ugat at nerve sa paligid ng bali, at lumala ang pinsala.\nDapat: i-splint at ipasuri sa ospital.'},
+    {t:'Patayuin at palakarin para masubukan',
+     m:'Delikado! Ang paggalaw ay nagpapalala ng bali at maaaring maging bukas na sugat.\nDapat: huwag igalaw, suportahan ang bahagi.'},
+  ]},
+{ id:'paso', cat:'medikal', name:'Paso', icon:'ic_fire', tint:{6:'#c0392b',17:'#ffd2a6'},
+  intro:'May napasong kamay sa kumukulong tubig!\nLumitaw ang PASO!',
+  dex:{ano:'Pinsala sa balat dulot ng init, kuryente o kemikal.',
+       tanda:'Pamumula, sakit, paltos, o maputi at tuyong balat sa malalim na paso.',
+       tugon:'Patakbuhan ng malamig (hindi yelo) na tubig nang 10–20 minuto, alisin ang alahas, takpan ng malinis at basang tela, at magpatingin kung malaki o malalim.'},
+  opts:[
+    {t:'Patakbuhan ng malamig na tubig ng 10–20 minuto', ok:true,
+     m:'Tama! Ang malamig na tumatakbong tubig ang pinakamabisang unang lunas.\nTakpan ng malinis na tela pagkatapos.'},
+    {t:'Lagyan ng toothpaste, bagoong o margarine',
+     m:'Delikado! Nagtatago ito ng init sa loob ng balat at nagdudulot ng impeksyon.\nDapat: malamig na tubig lang.'},
+    {t:'Butasin ang mga paltos',
+     m:'Delikado! Ang paltos ay natural na proteksyon — kapag nabutas, dumadaan ang mikrobyo.\nDapat: hayaan ito at takpan ng malinis na tela.'},
+  ]},
+{ id:'allergy', cat:'medikal', name:'Malubhang Allergy', icon:'ic_med', tint:{6:'#e67e22'},
+  intro:'Namamaga ang mukha at labi ng isang bata matapos kumain!\nLumitaw ang MALUBHANG ALLERGY!',
+  dex:{ano:'Anaphylaxis — matinding reaksyon ng katawan sa pagkain, gamot o kagat ng insekto.',
+       tanda:'Pamamaga ng mukha, labi at lalamunan, pantal, hirap huminga, pagkahilo.',
+       tugon:'Tumawag agad ng ambulansya, alisin ang sanhi kung kaya, at gamitin ang epinephrine auto-injector kung mayroon at sanay ang tagapag-alaga.'},
+  opts:[
+    {t:'Tumawag agad at gamitin ang epinephrine kung meron', ok:true,
+     m:'Tama! Mabilis lumala ang anaphylaxis — minuto lang ang agwat.\nManatili sa tabi niya hanggang dumating ang tulong.'},
+    {t:'Painumin ng tubig at hintaying mawala',
+     m:'Delikado! Maaaring sumara ang lalamunan sa loob ng ilang minuto.\nDapat: tumawag agad ng ambulansya.'},
+    {t:'Bigyan ng ibang pagkain para mapawi',
+     m:'Delikado! Maaaring may parehong allergen at lumala pa ang reaksyon.\nDapat: huwag pakainin at tumawag agad ng tulong.'},
+  ]},
+
+/* ===== KRIMEN (8) ===== */
+{ id:'dukot', cat:'krimen', name:'Mandurukot', icon:'ic_crime',
+  intro:'May kamay na dumukot sa bag ng nakatabi mo sa siksikan!\nLumitaw ang MANDURUKOT!',
+  dex:{ano:'Palihim na pagnanakaw ng gamit sa siksikan tulad ng palengke, terminal at mall.',
+       tanda:'Sadyang siksikan, may nagtutulak, may kumakausap para makaabala.',
+       tugon:'Isuot ang bag sa harap, huwag magpakita ng cellphone at pera, at kapag may nangyari — sumigaw ng tulong at lumapit sa tanod o pulis.'},
+  opts:[
+    {t:'Sumigaw ng tulong at lumapit sa tanod o pulis', ok:true,
+     m:'Tama! Ang atensyon ng tao at awtoridad ang pinakamabisang panangga.\nPNP Malolos: (044) 791-0331.'},
+    {t:'Habulin mag-isa ang suspek sa eskinita',
+     m:'Delikado! Maaaring may kasama siya at armado — mas malaki ang panganib kaysa sa nawalang gamit.\nDapat: humingi ng tulong sa awtoridad.'},
+    {t:'Huwag na lang pansinin at umalis',
+     m:'Mali. Kapag walang nagre-report, patuloy silang mandudukot ng ibang tao.\nDapat: i-report agad sa tanod o pulis.'},
+  ]},
+{ id:'nakaw', cat:'krimen', name:'Nakawan sa Bahay', icon:'ic_bag',
+  intro:'Bukas ang pinto at magulo ang loob ng bahay!\nLumitaw ang NAKAWAN SA BAHAY!',
+  dex:{ano:'Pagpasok sa tahanan upang magnakaw, kadalasan kapag walang tao.',
+       tanda:'Sirang kandado, bukas na bintana, magulong gamit, nawawalang alahas at gadget.',
+       tugon:'Huwag pumasok kung baka nasa loob pa ang salarin. Tumawag sa PNP, huwag galawin ang pinangyarihan, at ilista ang nawawala.'},
+  opts:[
+    {t:'Huwag pumasok, tumawag sa PNP, huwag galawin', ok:true,
+     m:'Tama! Ang fingerprint at ebidensya ay nasa hindi nagagalaw na lugar.\nPNP Malolos: (044) 791-0331 o 911.'},
+    {t:'Maglinis agad para maayos ang bahay',
+     m:'Delikado! Mabubura ang ebidensyang kailangan ng imbestigasyon.\nDapat: hayaan muna hanggang dumating ang pulis.'},
+    {t:'Maghanap ng suspek sa kalye mag-isa',
+     m:'Delikado! Maaaring armado ang salarin at wala kang kasama.\nDapat: iwan ito sa awtoridad at magbigay ng detalye.'},
+  ]},
+{ id:'holdap', cat:'krimen', name:'Holdapan', icon:'ic_crime', tint:{1:'#3a2a3a'},
+  intro:'May humarang na nakamaskara at humihingi ng gamit mo!\nLumitaw ang HOLDAPAN!',
+  dex:{ano:'Pagnanakaw gamit ang dahas o pananakot, kadalasan sa madilim o tahimik na lugar.',
+       tanda:'Sinusundan ka, humaharang, may itinatagong bagay sa bulsa o baywang.',
+       tugon:'Huwag lumaban. Ibigay ang gamit, tandaan ang itsura at damit, at pagkaalis nila ay tumawag agad sa PNP.'},
+  opts:[
+    {t:'Huwag lumaban, ibigay ang gamit, tandaan ang itsura', ok:true,
+     m:'Tama! Mas mahalaga ang buhay mo kaysa sa cellphone.\nMagbigay ng detalyadong deskripsyon sa pulis.'},
+    {t:'Makipag-agawan sa hawak niyang armas',
+     m:'Delikado! Maraming biktima ang nasasaktan sa pakikipag-agawan.\nDapat: sumunod muna, saka mag-report.'},
+    {t:'Kumuha ng video habang nangyayari',
+     m:'Delikado! Puwede kang saktan kapag nakita ka niyang nagre-record.\nDapat: manatiling kalmado at mag-report pagkatapos.'},
+  ]},
+{ id:'onlinescam', cat:'krimen', name:'Online Scam', icon:'ic_phone',
+  intro:'May text na "Nanalo ka! I-click ang link at ibigay ang OTP."\nLumitaw ang ONLINE SCAM!',
+  dex:{ano:'Panloloko online gamit ang pekeng premyo, pekeng tindahan o pekeng link.',
+       tanda:'Napakagandang alok, madaliang deadline, kahina-hinalang link, humihingi ng OTP o password.',
+       tugon:'Huwag mag-click at huwag magbigay ng OTP kahit kanino. I-block at i-report sa PNP Anti-Cybercrime Group.'},
+  opts:[
+    {t:'Huwag mag-click, huwag ibigay ang OTP, i-report', ok:true,
+     m:'Tama! Walang lehitimong bangko o ahensya ang humihingi ng OTP.\nI-report sa PNP Anti-Cybercrime Group.'},
+    {t:'Ibigay ang OTP dahil verification daw',
+     m:'Delikado! Ang OTP ang huling susi sa iyong account — kapag naibigay mo, maaubos ang laman nito.\nDapat: huwag ibahagi ang OTP kahit kanino.'},
+    {t:'Magpadala ng maliit na processing fee',
+     m:'Delikado! Wala talagang premyo — hihingi lang sila ng paulit-ulit na bayad.\nDapat: itigil ang usapan at i-report.'},
+  ]},
+{ id:'phonescam', cat:'krimen', name:'Scam sa Telepono', icon:'ic_phone', tint:{32:'#8e44ad'},
+  intro:'"Naaksidente ang kapatid mo, magpadala agad ng pera!"\nLumitaw ang SCAM SA TELEPONO!',
+  dex:{ano:'Panloloko sa tawag gamit ang takot at pagmamadali.',
+       tanda:'Pagmamadali, ayaw magpakilala nang maayos, humihingi agad ng padala sa e-wallet.',
+       tugon:'Ibaba ang tawag at i-verify sa tunay na numero ng kamag-anak o ospital bago gumawa ng kahit ano.'},
+  opts:[
+    {t:'Ibaba ang tawag at i-verify sa tunay na kamag-anak', ok:true,
+     m:'Tama! Ang pag-verify ang pumapatay sa scam.\nSabihin sa mga nakatatanda ang paraang ito.'},
+    {t:'Magpadala agad ng pera dahil emergency',
+     m:'Delikado! Hindi na mababawi ang naipadalang pera kapag na-claim na.\nDapat: i-verify muna sa tunay na numero.'},
+    {t:'Ibigay ang bank details para ma-refund',
+     m:'Delikado! Gagamitin nila ito para ubusin ang iyong account.\nDapat: huwag magbigay ng anumang detalye ng bangko.'},
+  ]},
+{ id:'estranghero', cat:'krimen', name:'Kahina-hinalang Estranghero', icon:'ic_crime', tint:{8:'#c9a37a'},
+  intro:'May estrangherong nag-aalok ng sakay malapit sa paaralan.\nLumitaw ang KAHINA-HINALANG ESTRANGHERO!',
+  dex:{ano:'Taong nag-aalok ng regalo o sakay upang linlangin ang bata.',
+       tanda:'Nag-aalok ng libreng regalo o sakay, alam ang pangalan mo, gustong ilihim ang usapan.',
+       tugon:'Huwag sumama at huwag tumanggap. Pumunta sa guro, magulang, tanod o pulis at i-report ang itsura at plaka ng sasakyan.'},
+  opts:[
+    {t:'Huwag sumama, agad mag-report sa guro o tanod', ok:true,
+     m:'Tama! Ang pagsabi sa nakatatanda ang pinakamabilis na proteksyon.\nTandaan ang plaka at kulay ng sasakyan.'},
+    {t:'Sumama para sa libreng regalo',
+     m:'Delikado! Ito ang pinakakaraniwang paraan ng pang-aakit sa mga bata.\nDapat: tumanggi at lumapit sa nakatatanda.'},
+    {t:'Makipagtalo sa kanya mag-isa',
+     m:'Delikado! Puwede kang hilahin o saktan kapag walang katabi.\nDapat: lumayo at mag-report agad.'},
+  ]},
+{ id:'bully', cat:'krimen', name:'Pambubully', icon:'ic_fist',
+  intro:'May inaapi at kinukutya sa likod ng paaralan.\nLumitaw ang PAMBUBULLY!',
+  dex:{ano:'Paulit-ulit na pang-aapi sa salita, gawa o online (cyberbullying).',
+       tanda:'Ayaw nang pumasok, nasisira ang gamit, tahimik at malungkot, may nakakatakot na mensahe online.',
+       tugon:'I-report sa guro o guidance counselor, samahan ang biktima, huwag gumanti ng dahas, at i-screenshot ang cyberbullying bago i-block.'},
+  opts:[
+    {t:'Samahan ang biktima at i-report sa guro', ok:true,
+     m:'Tama! Ang suporta ng kaklase at pag-report ang pumipigil sa bullying.\nMay Anti-Bullying Act (RA 10627) ang mga paaralan.'},
+    {t:'Gumanti ng suntok',
+     m:'Delikado! Lalaki ang gulo, masasaktan ka rin, at pareho kayong mapaparusahan.\nDapat: i-report sa guro at samahan ang biktima.'},
+    {t:'Manood at tumawa kasama ang iba',
+     m:'Mali. Ang panonood at pagtawa ay nagpapatibay sa bully at nagpapalala sa biktima.\nDapat: tumulong at mag-report.'},
+  ]},
+{ id:'bandal', cat:'krimen', name:'Bandalismo', icon:'ic_spray',
+  intro:'May nagsi-spray ng pintura sa pader ng plaza!\nLumitaw ang BANDALISMO!',
+  dex:{ano:'Sadyang pagsira o pagdumi sa pampublikong ari-arian.',
+       tanda:'Spray paint sa pader, sirang upuan at ilaw, nabasag na karatula.',
+       tugon:'Huwag harapin nang mag-isa. I-report sa barangay, tanod o pulis, at tumulong sa clean-up drive ng komunidad.'},
+  opts:[
+    {t:'I-report sa barangay o tanod, huwag harapin mag-isa', ok:true,
+     m:'Tama! Ang pag-report ang ligtas at tamang hakbang.\nAng plaza at heritage sites ng Malolos ay pag-aari nating lahat.'},
+    {t:'Sumali sa pagsulat sa pader',
+     m:'Mali. Krimen ito at may kaukulang parusa, at nasisira ang pamana ng lungsod.\nDapat: tumanggi at mag-report.'},
+    {t:'Burahin agad bago mag-report',
+     m:'Mali. Nawawala ang ebidensya para makilala ang gumawa.\nDapat: i-report muna bago maglinis.'},
+  ]},
 ];
-const MAP_W = mapData[0].length, MAP_H = mapData.length;
+const INCIDENT_INDEX = {};
+INCIDENTS.forEach(function(i){ INCIDENT_INDEX[i.id] = i; });
+function catIncidents(cat){ return INCIDENTS.filter(function(i){ return i.cat===cat; }); }
+
+/* ---------- 4. LUNGSOD NG MALOLOS: GUSALI, LANDMARK AT MAPA ---------- */
+/* Ang mapa ay pinasimpleng bersyon ng tunay na Lungsod ng Malolos — hindi GIS-accurate.
+   Layunin: makilala ang mga tunay na lugar sa laki at anyo na akma sa RPG. */
+
+// Mga base ng pagtugon (may hotline, gabay at DisasterDex)
+const BASECAMPS = {
+  11:{ title:'CDRRMO Malolos', sub:'City Disaster Risk Reduction and Management Office', cat:'kalamidad',
+       hotlines:['CDRRMO Malolos: (044) 796-0498','Pambansang Emergency: 911','Barangay: tawagan ang inyong tanod'],
+       gabay:['Lindol: Duck, Cover, and Hold. Pagkatapos ng pag-uga, lumabas nang maayos sa open area.',
+              'Baha: lumikas nang maaga; huwag tumawid sa umaagos na tubig.',
+              'Bagyo: sundin ang signal ng PAGASA at manatili sa loob.',
+              'Landslide: pansinin ang bitak sa lupa at maputik na tubig — maagang babala ito.'],
+       payo:['Maghanda ng GO BAG: tubig, de-latang pagkain, flashlight, radyo, baterya, gamot, pito, ID at pera.',
+             'Alamin ang pinakamalapit na evacuation center ng inyong barangay.',
+             'Magkaroon ng family emergency plan at meeting place.',
+             'I-save ang mga hotline sa cellphone ng bawat kasapi ng pamilya.'] },
+  12:{ title:'Bulacan Medical Center', sub:'Pangunahing ospital ng lalawigan sa Malolos', cat:'medikal',
+       hotlines:['Bulacan Medical Center: (044) 791-0630','Pambansang Emergency: 911'],
+       gabay:['Atake sa puso: tumawag agad, paupuin, maghanda sa CPR.',
+              'Stroke: gamitin ang FAST at tandaan ang oras ng simula.',
+              'Nasamid: back blows at abdominal thrust.',
+              'Pagdurugo: diretsong presyon gamit ang malinis na tela.',
+              'Paso: malamig na tumatakbong tubig ng 10–20 minuto.'],
+       payo:['Mag-ingat sa paggalaw ng pasyenteng may bali o sugat sa leeg.',
+             'Ilista ang allergy at gamot ng bawat kasapi ng pamilya.',
+             'Mag-aral ng Basic Life Support — inaalok ito ng Philippine Red Cross.',
+             'Panatilihing kompleto ang first aid kit sa bahay at sasakyan.'] },
+  13:{ title:'Malolos City Police Station', sub:'Philippine National Police — Lungsod ng Malolos', cat:'krimen',
+       hotlines:['PNP Malolos: (044) 791-0331','Pambansang Emergency: 911','PNP Anti-Cybercrime Group: i-report ang scam'],
+       gabay:['Holdapan: huwag lumaban, ibigay ang gamit, tandaan ang itsura.',
+              'Mandurukot: bag sa harap, sumigaw ng tulong.',
+              'Online at phone scam: huwag magbigay ng OTP; i-verify muna.',
+              'Kahina-hinalang estranghero: huwag sumama at mag-report agad.'],
+       payo:['I-report ang krimen kahit maliit — nakakatulong ito sa patrol planning.',
+             'Huwag magbahagi ng lokasyon at gamit sa social media nang live.',
+             'Sa gabi, dumaan sa maliwanag at matao na daan.',
+             'Kilalanin ang inyong barangay tanod at ang numero ng barangay hall.'] },
+  14:{ title:'BFP Malolos City Fire Station', sub:'Bureau of Fire Protection — Lungsod ng Malolos', cat:'sunog',
+       hotlines:['BFP Malolos: (044) 791-2555','Pambansang Emergency: 911'],
+       gabay:['Sunog sa mantika: takpan, huwag buhusan ng tubig.',
+              'Sunog sa kuryente: patayin ang breaker, Class C extinguisher.',
+              'Tagas ng LPG: isara ang balbula, buksan ang bintana, walang switch.',
+              'Sunog sa gusali: gumapang sa ilalim ng usok, hagdan hindi elevator.'],
+       payo:['Suriin ang kalan, LPG hose at extension cord kada buwan.',
+             'Maglagay ng fire extinguisher (ABC type) sa bahay at alamin ang PASS: Pull, Aim, Squeeze, Sweep.',
+             'Iwasan ang octopus connection.',
+             'Magsanay ng fire exit drill sa bahay at paaralan.'] },
+};
+
+// Mga landmark (pang-eksplorasyon at pagkilala sa sariling lungsod — walang laban dito)
+const LANDMARKS = {
+  21:{ name:'Simbahan ng Barasoain', sub:'Barasoain Church, Brgy. Santo Niño',
+       desc:'Dito ginanap ang Kongreso ng Malolos noong 1898 at inagurahan ang Unang Republika ng Pilipinas noong Enero 23, 1899. Tinaguriang "Cradle of Democracy in the East".',
+       tip:'Ang mga heritage structure ay mahina sa lindol. Kapag lumindol, lumabas nang maayos sa bukas na patyo at iwasan ang mabibigat na dekorasyon at bintana.' },
+  22:{ name:'Kapitolyo ng Bulacan', sub:'Bulacan Provincial Capitol, Kapitolyo Area',
+       desc:'Sentro ng pamahalaang panlalawigan ng Bulacan at kinaroroonan ng Provincial DRRM Office na tumutulong sa lahat ng bayan at lungsod ng lalawigan.',
+       tip:'Ang Capitol grounds ay isa sa mga bukas na lugar na maaaring maging assembly area tuwing lindol.' },
+  23:{ name:'Pamahalaang Lungsod ng Malolos', sub:'City Government of Malolos — City Hall',
+       desc:'Dito nakaupo ang pamahalaang lungsod at ang mga tanggapang naglilingkod sa mga Maloleño, kabilang ang CDRRMO.',
+       tip:'Sa City Hall makakakuha ng impormasyon tungkol sa evacuation plan at mga programa sa kahandaan ng barangay.' },
+  24:{ name:'Bulacan State University', sub:'BulSU Main Campus, Brgy. Guinhawa',
+       desc:'Pangunahing kampus ng Bulacan State University at isa sa pinakamalaking paaralan sa lalawigan.',
+       tip:'Ang mga paaralan ay nagsasagawa ng quarterly earthquake at fire drill. Alamin ang evacuation route ng inyong silid-aralan.' },
+  25:{ name:'Robinsons Malolos', sub:'Commercial zone sa may McArthur Highway',
+       desc:'Isa sa mga pangunahing mall ng lungsod at sentro ng kalakalan at libangan ng mga Maloleño.',
+       tip:'Pagpasok sa mall, tingnan agad kung saan ang fire exit at assembly area. Huwag gamitin ang elevator tuwing sunog o lindol.' },
+  26:{ name:'Katedral ng Malolos', sub:'Basilica Minore de la Inmaculada Concepcion',
+       desc:'Itinatag noong ika-16 na siglo at naging tanggapan ni Pangulong Emilio Aguinaldo noong panahon ng Unang Republika.',
+       tip:'Ang mga lumang simbahan ay may mabibigat na haligi at kisame. Sa lindol, kumanlong sa matibay na bangko at protektahan ang ulo.' },
+  27:{ name:'Hiyas ng Bulacan Convention Center', sub:'Kapitolyo Area',
+       desc:'Malaking convention center sa loob ng Capitol compound na ginagamit sa mga pagtitipon, palatuntunan at pagsasanay ng lalawigan.',
+       tip:'Ang malalaking bulwagan ay madalas gamiting evacuation center at command post tuwing malalaking kalamidad.' },
+  28:{ name:'Pamilihang Bayan ng Malolos', sub:'Bulacan Public Market',
+       desc:'Sentro ng kalakalan ng lungsod — dito nagtitinda ang mga magsasaka, mangingisda at maliliit na negosyante ng Malolos.',
+       tip:'Sa masikip na palengke, ilagay ang bag sa harap at tandaan ang pinakamalapit na labasan sakaling magkaroon ng sunog.' },
+  29:{ name:'South Supermarket', sub:'Commercial area ng lungsod',
+       desc:'Supermarket na pinagkukuhanan ng pang-araw-araw na pangangailangan ng mga pamilyang Maloleño.',
+       tip:'Dito mo mabibili ang laman ng GO BAG: tubig, de-latang pagkain, baterya, flashlight at first aid supplies.' },
+  30:{ name:'Malolos Sports and Convention Center', sub:'Pasilidad para sa palakasan at malalaking pagtitipon',
+       desc:'Ginagamit sa palaro, palatuntunan at pagsasanay ng lungsod at ng mga paaralan.',
+       tip:'Malalaking gymnasium tulad nito ang madalas gawing evacuation center kapag may bagyo o baha.' },
+  31:{ name:'Museo ng Republika ng 1899', sub:'Katabi ng Simbahan ng Barasoain',
+       desc:'Museo na nagtataglay ng mga alaala ng Unang Republika ng Pilipinas at ng Kongreso ng Malolos.',
+       tip:'Ang pag-iingat sa pamana ng bayan ay bahagi rin ng disaster preparedness — kaya may fire at flood protection ang mga museo.' },
+  32:{ name:'Casa Real Shrine', sub:'Dating imprenta at tanggapan ng pamahalaan',
+       desc:'Isang lumang gusaling bato mula pa noong panahon ng Espanyol na naging imprenta at tanggapan; ngayon ay pamanang pook at museo.',
+       tip:'Ang mga lumang gusaling bato ay maaaring magpalaglag ng bahagi ng pader tuwing lindol — lumayo sa gilid nito.' },
+  33:{ name:'Kapitolyo Area', sub:'Bukas na liwasan ng Kapitolyo',
+       desc:'Ang malawak na bakuran at liwasan ng Kapitolyo ng Bulacan — pook ng mga programa at pagtitipon ng lalawigan.',
+       tip:'Sa lindol, ang bukas na liwasan na malayo sa gusali, poste at kable ang pinakaligtas na lugar.' },
+  34:{ name:'McArthur Highway', sub:'Pangunahing daan ng Malolos at ng Gitnang Luzon',
+       desc:'Ang pangunahing lansangan na dumadaan sa Malolos at nag-uugnay sa Bulacan patungong Maynila at hilagang Luzon.',
+       tip:'Ito ang pangunahing ruta ng ambulansya at rescue. Tuwing emergency, bigyan ng daan ang mga sasakyang pang-emergency.' },
+};
+
+// Maliliit na gusali (tahanan at tindahan) — maikling usapan lang
+const HOUSES = {
+  41:{ name:'Bahay ng Pamilya', lines:['May go bag kami sa tabi ng pinto. Handa palagi!','Nakalista sa pader ang mga hotline: 911, CDRRMO, BFP at PNP.'] },
+  42:{ name:'Bahay ng Kapitbahay', lines:['Tuwing tag-ulan, itinataas namin ang gamit bago pa man umulan nang malakas.','Alam ng bawat bata rito kung saan ang evacuation center.'] },
+  43:{ name:'Sari-sari Store', lines:['Bumili ka ng baterya at kandila... pero mas mabuting flashlight ang gamitin, iho.','Tuwing may bagyo, dumadami ang bumibili ng tubig at de-lata. Mas mabuting maaga kang maghanda.'] },
+  44:{ name:'Bahay sa Tabing-Ilog', lines:['Malapit kami sa ilog kaya alerto kami sa babala ng CDRRMO.','Kapag sinabing lumikas, lumilikas kami agad — hindi na naghihintay.'] },
+};
+
+// Mga tandang panuto (sign) at bantayog (monument)
+const SIGN_TEXT = {
+  '9_9':  ['SENTRO NG LUNGSOD','◀ Katedral ng Malolos\n▶ CDRRMO at Pamahalaang Lungsod'],
+  '16_21':['DISTRITONG PANGKALUSUGAN','▶ Bulacan Medical Center\n▼ Himpilan ng Pulisya at Bumbero'],
+  '18_9': ['DAAN NG KASAYSAYAN','◀ Casa Real Shrine\n▶ Barasoain at Museo ng Republika'],
+  '26_21':['BABALA SA TABING-ILOG','Mataas ang tubig tuwing tag-ulan.\nHuwag maligo o tumawid sa baha.'],
+  '32_9': ['TIMOG NA BAHAGI','◀ Pamilihang Bayan\n▶ Sports and Convention Center'],
+};
+const MONUMENTS = { '4_17':33, '9_33':34 };
+
+// Rehistro ng mga gusali: id, uri, kulay ng bubong, posisyon at sukat
+const BUILDING_DEFS = [
+  // Emergency basecamps
+  {id:11, kind:'base', roof:'#c0392b', x:10, y:11, w:4, h:4},
+  {id:12, kind:'base', roof:'#3a9b6e', x:22, y:10, w:5, h:5},
+  {id:13, kind:'base', roof:'#4a90d9', x:22, y:18, w:4, h:4},
+  {id:14, kind:'base', roof:'#e0a72e', x:27, y:18, w:4, h:4},
+  // Landmarks
+  {id:21, kind:'landmark', roof:'#b9853f', x:10, y:18, w:5, h:5, top:'church', wall:'stone'},
+  {id:22, kind:'landmark', roof:'#8a7a5a', x:2,  y:2,  w:6, h:5, top:'dome',   wall:'stone'},
+  {id:23, kind:'landmark', roof:'#5a6a8a', x:15, y:10, w:5, h:5},
+  {id:24, kind:'landmark', roof:'#2f6f4f', x:23, y:2,  w:6, h:5},
+  {id:25, kind:'landmark', roof:'#7f5aa8', x:34, y:10, w:5, h:5, wall:'glass'},
+  {id:26, kind:'landmark', roof:'#a8763f', x:2,  y:10, w:5, h:5, top:'church', wall:'stone'},
+  {id:27, kind:'landmark', roof:'#3f7f9b', x:10, y:3,  w:5, h:4},
+  {id:28, kind:'landmark', roof:'#b06a3a', x:2,  y:29, w:6, h:4},
+  {id:29, kind:'landmark', roof:'#4a8f6a', x:34, y:18, w:5, h:4, wall:'glass'},
+  {id:30, kind:'landmark', roof:'#6a5a9b', x:22, y:29, w:6, h:4},
+  {id:31, kind:'landmark', roof:'#9b7a4a', x:16, y:19, w:4, h:3, wall:'stone'},
+  {id:32, kind:'landmark', roof:'#8a6a4a', x:2,  y:18, w:4, h:3, wall:'stone'},
+  // Tahanan at tindahan
+  {id:41, kind:'house', roof:'#c0724a', x:10, y:30, w:3, h:3},
+  {id:42, kind:'house', roof:'#4a90a8', x:14, y:30, w:3, h:3},
+  {id:43, kind:'house', roof:'#e0a72e', x:27, y:12, w:3, h:3},
+  {id:44, kind:'house', roof:'#8a9b4a', x:34, y:30, w:3, h:3},
+];
+const BUILDING_INDEX = {};
+BUILDING_DEFS.forEach(function(b){ BUILDING_INDEX[b.id] = b; });
+
+/* --- Mga uri ng tile --- */
+const T = { PATH:0, LAWN:1, GRASS:2, TREE:3, WATER:4, FLOWER:5, SIGN:6,
+            ROADH:7, ROADV:8, ROADX:9, PLAZA:10, BRIDGE:11, DIRT:12, HEDGE:13, MONUMENT:14 };
+const WALKABLE = {0:1,1:1,2:1,5:1,7:1,8:1,9:1,10:1,11:1,12:1};
+
+const MAP_W = 40, MAP_H = 36;
+const mapData = [];
+for(let y=0;y<MAP_H;y++){
+    const row = new Array(MAP_W);
+    for(let x=0;x<MAP_W;x++) row[x] = T.LAWN;
+    mapData.push(row);
+}
+function inMap(x,y){ return x>=0 && y>=0 && x<MAP_W && y<MAP_H; }
+function rect(x1,y1,x2,y2,v){
+    for(let y=y1;y<=y2;y++) for(let x=x1;x<=x2;x++) if(inMap(x,y)) mapData[y][x]=v;
+}
+// Deterministikong random para pare-pareho ang mapa sa bawat device
+let _seed = 20260104;
+function rnd(){ _seed = (_seed*1664525 + 1013904223) >>> 0; return _seed/4294967296; }
+
+const H_ROADS = [8,17,28];
+const V_ROADS = [8,20];
+const HIGHWAY = [31,32];
+
+function buildMap(){
+    // Hangganan ng bayan — mga puno
+    rect(0,0,MAP_W-1,0,T.TREE); rect(0,MAP_H-1,MAP_W-1,MAP_H-1,T.TREE);
+    rect(0,0,0,MAP_H-1,T.TREE); rect(MAP_W-1,0,MAP_W-1,MAP_H-1,T.TREE);
+
+    // Ilog at pampang (Malolos river system)
+    rect(1,24,MAP_W-2,25,T.WATER);
+    rect(1,23,MAP_W-2,23,T.DIRT);
+    rect(1,26,MAP_W-2,26,T.DIRT);
+
+    // Mga pangunahing daan
+    H_ROADS.forEach(function(y){ rect(2,y,MAP_W-2,y,T.ROADH); });
+    V_ROADS.forEach(function(x){ rect(x,2,x,MAP_H-2,T.ROADV); });
+    rect(HIGHWAY[0],1,HIGHWAY[1],MAP_H-2,T.ROADV); // McArthur Highway
+    H_ROADS.forEach(function(y){
+        V_ROADS.concat(HIGHWAY).forEach(function(x){ mapData[y][x] = T.ROADX; });
+    });
+    // Mga tulay sa ilog
+    V_ROADS.concat(HIGHWAY).forEach(function(x){
+        mapData[24][x] = T.BRIDGE; mapData[25][x] = T.BRIDGE;
+    });
+
+    // Liwasan (plaza) sa harap ng Katedral at sa Kapitolyo Area
+    rect(2,15,7,16,T.PLAZA);
+    rect(16,2,19,7,T.PLAZA);
+    mapData[4][17] = T.MONUMENT;
+
+    // Mga bakod na halaman
+    rect(21,2,21,6,T.HEDGE);
+    rect(15,2,15,6,T.HEDGE);
+
+    // Kadamuhan — dito nangyayari ang mga sanaysay na insidente
+    rect(34,2,38,7,T.GRASS);    // hilagang parang malapit sa BulSU
+    rect(3,26,7,27,T.GRASS);    // kanlurang tabing-ilog
+    rect(10,26,18,27,T.GRASS);  // gitnang tabing-ilog
+    rect(33,26,38,27,T.GRASS);  // silangang tabing-ilog
+    rect(2,34,7,34,T.GRASS);    // timog malapit sa palengke
+    rect(9,34,19,34,T.GRASS);
+    rect(22,34,30,34,T.GRASS);
+
+    // Mga gusali
+    BUILDING_DEFS.forEach(stampBuilding);
+
+    // Mga daanan mula sa pinto papunta sa kalsada
+    rect(5,7,5,7,T.PATH);    rect(12,7,12,7,T.PATH);   rect(26,7,26,7,T.PATH);
+    rect(12,15,12,16,T.PATH); rect(17,15,17,16,T.PATH); rect(24,15,24,16,T.PATH);
+    rect(28,15,28,16,T.PATH); rect(36,15,36,16,T.PATH);
+    rect(4,21,4,22,T.PATH);   rect(18,22,18,22,T.PATH);
+    rect(24,22,24,22,T.PATH); rect(29,22,29,22,T.PATH); rect(36,22,36,22,T.PATH);
+    rect(2,33,38,33,T.PATH);  // timog na lansangan
+    V_ROADS.concat(HIGHWAY).forEach(function(x){ mapData[33][x] = T.ROADV; }); // ibalik ang tawiran
+
+    // Mga tanda at bantayog
+    mapData[9][9]   = T.SIGN;
+    mapData[16][21] = T.SIGN;
+    mapData[18][9]  = T.SIGN;
+    mapData[26][21] = T.SIGN;
+    mapData[32][9]  = T.SIGN;
+    mapData[9][33]  = T.MONUMENT;
+
+    // Palamuti: mga puno at bulaklak sa natitirang damuhan
+    for(let y=1;y<MAP_H-1;y++){
+        for(let x=1;x<MAP_W-1;x++){
+            if(mapData[y][x] !== T.LAWN) continue;
+            const r = rnd();
+            if(r < 0.07) mapData[y][x] = T.TREE;
+            else if(r < 0.12) mapData[y][x] = T.FLOWER;
+        }
+    }
+}
+function stampBuilding(def){
+    const w = def.w, h = def.h;
+    const doorOff = (def.doorOff === undefined) ? Math.floor(w/2) : def.doorOff;
+    const topShape = def.top === 'church' ? 4 : def.top === 'dome' ? 5 : 0;
+    for(let ry=0; ry<h; ry++){
+        for(let rx=0; rx<w; rx++){
+            let shape;
+            if(ry === 0)          shape = (rx === Math.floor(w/2)) ? topShape : 0;
+            else if(ry === h-1)   shape = (rx === doorOff) ? 3 : 2;
+            else                  shape = 1;
+            if(inMap(def.x+rx, def.y+ry)) mapData[def.y+ry][def.x+rx] = def.id*10 + shape;
+        }
+    }
+    def._door = {x:def.x+doorOff, y:def.y+h-1};
+    // Siguraduhing malinis ang harapan ng pinto
+    const fy = def.y + h;
+    if(inMap(def._door.x, fy) && mapData[fy][def._door.x] === T.LAWN) mapData[fy][def._door.x] = T.PATH;
+}
+buildMap();
+
+/* Mga sonang pinagmumulan ng insidente — iniaayon sa lugar ang kategorya */
+const ENCOUNTER_ZONES = [
+  {x1:1,  y1:23, x2:38, y2:27, cats:['kalamidad','kalamidad','medikal']},   // tabing-ilog
+  {x1:33, y1:1,  x2:38, y2:8,  cats:['medikal','krimen','kalamidad']},      // parang malapit sa BulSU
+  {x1:1,  y1:29, x2:20, y2:34, cats:['sunog','krimen','sunog']},            // palengke at pook-tirahan
+  {x1:21, y1:29, x2:38, y2:34, cats:['krimen','medikal','sunog']},          // timog-silangan
+];
+function zoneCats(tx,ty){
+    for(const z of ENCOUNTER_ZONES){
+        if(tx>=z.x1 && tx<=z.x2 && ty>=z.y1 && ty<=z.y2) return z.cats;
+    }
+    return CAT_ORDER;
+}
+
+/* ---------- 5. MGA NPC ---------- */
+/* Ang ilan ay nagbibigay ng aral, ang iba ay nagpapasimula ng insidente (may `inc`). */
+const npcs = [
+ {id:'officer', tx:11, ty:16, dir:'down', key:'officer', name:'CDRRMO Officer Ligaya',
+  lines:['Magandang araw! Ako ang tagapagsanay ng CDRRMO Malolos.',
+         'Sa loob ng gusaling ito ay makikita mo ang mga hotline, gabay at DisasterDex.',
+         'Maglakad sa kadamuhan o kausapin ang mga taga-Malolos upang subukin ang iyong kahandaan.']},
+ {id:'tanod', tx:6, ty:16, dir:'down', key:'tanod', name:'Barangay Tanod Kiko', inc:'dukot',
+  lines:['Bantay-bayan tayo rito sa plaza, iho.',
+         'Maraming tao tuwing pista at Linggo — dito rin dumarami ang mandurukot.',
+         'Subukan natin: ano ang gagawin mo kapag may dumukot sa katabi mo?']},
+ {id:'elder', tx:3, ty:16, dir:'right', key:'elder', name:'Lolo Simo',
+  lines:['Matagal na akong naninirahan dito sa Malolos, apo.',
+         'Nakita ko na kung paano tumaas ang tubig tuwing malakas ang ulan at high tide.',
+         'Ang matalino ay lumilikas nang maaga. Huwag hintaying umabot sa baywang ang tubig.']},
+ {id:'churchgoer', tx:5, ty:15, dir:'down', key:'churchgoer', name:'Aling Rosa',
+  lines:['Ang Katedral ng Malolos ay bahagi ng ating kasaysayan.',
+         'Tuwing may pagtitipon, alamin agad kung saan ang pinakamalapit na labasan.',
+         'Sa lindol, protektahan ang ulo at kumapit sa matibay na bangko.']},
+ {id:'teacher', tx:18, ty:16, dir:'down', key:'teacher', name:'Guro Melinda', inc:'lindol',
+  lines:['Guro ako sa isang pampublikong paaralan dito sa lungsod.',
+         'Bawat quarter ay may earthquake drill kami — hindi ito laro, ito ay pagsasanay.',
+         'Halika, subukan natin kung tama ang iyong tugon sa lindol.']},
+ {id:'nurse', tx:23, ty:15, dir:'down', key:'nurse', name:'Nurse Bea', inc:'puso',
+  lines:['Nasa Bulacan Medical Center tayo — dito dinadala ang mga malubhang kaso.',
+         'Ang unang minuto ng emergency ang pinakamahalaga.',
+         'Handa ka na bang sumagot sa isang tunay na sitwasyon?']},
+ {id:'doctor', tx:25, ty:16, dir:'down', key:'doctor', name:'Dr. Reyes',
+  lines:['Alam mo ba ang FAST? Face, Arms, Speech, Time — ito ang tanda ng stroke.',
+         'Tandaan ang oras ng pagsisimula ng sintomas; kailangan iyon ng doktor.',
+         'Ang mabilis na pagtawag ng tulong ay nakakaligtas ng buhay.']},
+ {id:'police', tx:21, ty:20, dir:'right', key:'police', name:'PO2 Dimaano', inc:'holdap',
+  lines:['Malolos City Police Station ito. Ligtas ka rito.',
+         'Ang pinakamahusay na depensa ay ang pag-iwas at ang mabilis na pag-report.',
+         'Subukan natin ang isang senaryo — huwag kang mag-alala, pagsasanay lang ito.']},
+ {id:'fireman', tx:26, ty:21, dir:'down', key:'fireman', name:'FO1 Bautista', inc:'lpg',
+  lines:['BFP Malolos! Karamihan ng sunog sa bahay ay nagsisimula sa kusina.',
+         'Alam mo ba ang amoy ng tumatagas na LPG? Parang bulok na itlog.',
+         'Halika, pag-aralan natin ang tamang tugon.']},
+ {id:'student', tx:25, ty:7, dir:'down', key:'student', name:'Estudyanteng si Migs',
+  lines:['Taga-BulSU ako! Malaki ang kampus namin dito sa Guinhawa.',
+         'May campus DRRM team kami na nagtuturo ng first aid at fire safety.',
+         'Sumali ka rin sa youth preparedness program ng inyong barangay!']},
+ {id:'kid', tx:19, ty:7, dir:'left', key:'kid', name:'Batang Ana',
+  lines:['Ito po ang Kapitolyo Area! Malawak dito at maraming damo.',
+         'Sabi ni Nanay, kapag lumindol, dito daw kami magkikita-kita.',
+         'May meeting place po ba kayo ng pamilya niyo?']},
+ {id:'enforcer', tx:33, ty:16, dir:'left', key:'enforcer', name:'Traffic Enforcer Dado',
+  lines:['Ito ang McArthur Highway — ruta ito ng mga ambulansya at rescue truck.',
+         'Kapag may sirena, bigyan agad ng daan. Buhay ang nakasalalay diyan.',
+         'Sa baha, huwag magpumilit tumawid — maraming sasakyang naiipit dito.']},
+ {id:'vendor', tx:6, ty:33, dir:'up', key:'vendor', name:'Aling Neneng', inc:'kusina',
+  lines:['Bili na kayo! Sariwa ang gulay galing sa mga taniman ng Bulacan.',
+         'Sa palengke, mabilis kumalat ang apoy dahil magkakadikit ang mga puwesto.',
+         'Sabihin mo nga sa akin — paano mo aapulahin ang nagliliyab na mantika?']},
+ {id:'driver', tx:9, ty:16, dir:'right', key:'driver', name:'Tsuper Manong Berting',
+  lines:['Tricycle driver ako rito sa sentro ng Malolos.',
+         'Tuwing malakas ang ulan, alam namin kung aling kanto ang unang binabaha.',
+         'Kapag hindi na madaanan, huwag magpilit — maghanap ng ibang ruta.']},
+ {id:'rescue', tx:17, ty:26, dir:'down', key:'rescue', name:'Volunteer Rescuer Jun', inc:'flashflood',
+  lines:['Volunteer rescuer ako ng barangay dito sa tabing-ilog.',
+         'Anim na pulgada lang ng umaagos na tubig, kaya ka nang patumbahin.',
+         'Sagutin mo nga ito — biglaang baha, ano ang unang gagawin mo?']},
+ {id:'parent', tx:13, ty:33, dir:'up', key:'parent', name:'Nanay Lita', inc:'samid',
+  lines:['Tatlo ang anak ko, kaya laging handa ang first aid kit namin.',
+         'Isang beses, nasamid ang bunso ko sa kendi — grabe ang kaba ko.',
+         'Alam mo ba ang tamang gagawin kapag may nasamid?']},
+ {id:'worker', tx:26, ty:33, dir:'up', key:'worker', name:'Manong Karpintero', inc:'debris',
+  lines:['Nagtatrabaho ako sa mga gusali rito sa lungsod.',
+         'Ang delikado sa lindol ay hindi ang lupa — ang nahuhulog na bagay.',
+         'Ano sa tingin mo ang tamang gawin kapag may bumabagsak na debris?']},
+ {id:'tourist', tx:13, ty:23, dir:'up', key:'tourist', name:'Turistang si Kim',
+  lines:['Naglilibot ako sa mga makasaysayang pook ng Malolos.',
+         'Barasoain, Museo ng Republika, Casa Real, Katedral — lahat ay malapit lang sa isa\'t isa.',
+         'Ipagmalaki mo ang lungsod ninyo. Dito isinilang ang Unang Republika!']},
+ {id:'tanod2', tx:35, ty:23, dir:'left', key:'tanod', name:'Tanod Ramil', inc:'onlinescam',
+  lines:['Marami ngayong biktima ng scam sa text at online.',
+         'Kahit matatanda ay nabibiktima — kailangan nating turuan sila.',
+         'Ano ang gagawin mo kapag may humihingi ng OTP mo?']},
+ {id:'student2', tx:11, ty:7, dir:'down', key:'student', name:'Estudyanteng si Lala', inc:'bully',
+  lines:['May programa kami sa paaralan laban sa bullying.',
+         'Mahirap magsalita kapag ikaw ang inaapi — kaya mahalaga ang kaklaseng tutulong.',
+         'Ano ang gagawin mo kapag may nakita kang binu-bully?']},
+];
+npcs.forEach(function(n){ n.frame = 0; });
+// Linisin ang tinutunguhan ng NPC upang hindi sila mapatong sa puno o palamuti
+npcs.forEach(function(n){
+    if(inMap(n.tx,n.ty) && !WALKABLE[mapData[n.ty][n.tx]]) mapData[n.ty][n.tx] = T.LAWN;
+});
+
+/* ---------- 6. ESTADO NG LARO ---------- */
 const TILE = 48, VIEW_W = 10, VIEW_H = 10;
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
 ctx.imageSmoothingEnabled = false;
 
-/* ---------- 4. GAME STATE & DISASTER DATA ---------- */
 let gameState = 'title'; // title | overworld | dialog | menu | battle
 let muted = false;
+const SETTINGS = { sound:true, fx:true, speed:'normal', bigText:false };
+const SPEEDS = { mabagal:46, normal:26, mabilis:11 };
+function textSpeed(){ return SPEEDS[SETTINGS.speed] || SPEEDS.normal; }
+
 const camera = {x:0, y:0};
 const keys = {};
 const MOVE_DUR = 150;
 const DIRS = { up:[0,-1], down:[0,1], left:[-1,0], right:[1,0] };
 
 const player = {
-    tx:9, ty:5, px:9*TILE, py:5*TILE,
-    dir:'down', frame:0, moving:false, moveStart:0,
+    tx:12, ty:16, px:12*TILE, py:16*TILE,
+    dir:'up', frame:0, moving:false, moveStart:0,
     fromX:0, fromY:0, toX:0, toY:0,
 };
 
-const npcs = [
-    { id:'resident', tx:7, ty:5, dir:'down', frame:0, key:'npc1',
-      lines:[
-        "Welcome to Malolos City! Being prepared is key.",
-        "Check the CDRRMO, Police, Fire, and Medical buildings to get their hotlines.",
-        "Watch out in the tall grass... emergencies happen when you least expect them!"
-      ] },
-    { id:'responder', tx:12, ty:9, dir:'down', frame:0, key:'npc2',
-      lines:[
-        "We simulate real disaster situations here.",
-        "Wander into the tall grass to test your Readiness skills.",
-        "Remember to stay calm and make the right choices!"
-      ] },
-];
+let dexFound = new Set();          // mga insidenteng natapos nang tama
+let badges = {sunog:false, kalamidad:false, medikal:false, krimen:false};
+let visitedLandmarks = new Set();  // mga landmark na napuntahan
+let tutorialSeen = false;
+let endingShown = false;
 
-const SIGN_TEXT = {
-    '3_6': ["CITY SQUARE", "<- CDRRMO (Red Roof)\nPolice Station (Blue Roof) ->"],
-    '8_16': ["SOUTHERN DISTRICT", "<- Bulacan Medical Center (Green)\nFire Station (Yellow) ->"],
-};
-
-// --- Directories (Building Menus) ---
-const DIRECTORIES = {
-    11: {
-        title: "Malolos CDRRMO",
-        hotline: "HOTLINE: (044) 796-0498",
-        items: ["Earthquake: Duck, Cover, and Hold", "Flood: Evacuate to higher ground", "Typhoon: Secure loose objects", "Extreme Heat: Stay hydrated"]
-    },
-    12: {
-        title: "Bulacan Medical Center",
-        hotline: "HOTLINE: (044) 791-0630",
-        items: ["Heart Attack: Call emergency immediately", "Stroke: Note time and seek help", "Fractures: Immobilize the area", "Burns: Cool with running water", "Choking: Perform Heimlich Maneuver"]
-    },
-    13: {
-        title: "Malolos Police Station",
-        hotline: "HOTLINE: (044) 791-0331",
-        items: ["Robbery Scenario: Do not resist armed suspects", "Theft: Secure valuables in crowds", "Assault: Seek safety and report", "Scam/Cybercrime: Do not share OTPs", "Vandalism: Report suspicious activity"]
-    },
-    14: {
-        title: "Malolos Fire Station",
-        hotline: "HOTLINE: (044) 791-2555",
-        items: ["Electrical Fire: Unplug if safe, don't use water", "Grease Fire: Smother with lid, NEVER water", "LPG Leak: Open windows, do not switch lights", "Arson: Report suspicious fire incidents"]
-    }
-};
-
-// --- Emergencies (Battle Simulations) ---
-let dexFound = new Set();
-let badges = [false,false,false];
-
-const EMERGENCIES = [
-    { id:'quake', name:'EARTHQUAKE', icon:'icon_quake',
-      intro: "The ground shakes violently!\nWild EARTHQUAKE appeared!",
-      opt1: {text:"Duck, Cover, Hold", correct:true, msg:"It's super effective!\nYou avoided falling debris and stayed safe."},
-      opt2: {text:"Panic and run", correct:false, msg:"Attack missed!\nYou tripped and were hit by falling debris."} },
-    { id:'flood', name:'FLASH FLOOD', icon:'icon_flood',
-      intro: "Water levels are rising fast!\nWild FLASH FLOOD appeared!",
-      opt1: {text:"Wade in the water", correct:false, msg:"Attack missed!\nYou caught Leptospirosis and put yourself at risk."},
-      opt2: {text:"Evacuate high", correct:true, msg:"It's super effective!\nYou stayed dry and reached the evacuation center."} },
-    { id:'fire', name:'GREASE FIRE', icon:'icon_fire',
-      intro: "A kitchen pan bursts into flames!\nWild GREASE FIRE appeared!",
-      opt1: {text:"Smother with lid", correct:true, msg:"It's super effective!\nThe fire is suppressed safely."},
-      opt2: {text:"Throw water", correct:false, msg:"Attack missed!\nThe fire exploded and spread rapidly!"} },
-    { id:'med', name:'HEART ATTACK', icon:'icon_med',
-      intro: "Someone collapses holding their chest!\nMedical EMERGENCY appeared!",
-      opt1: {text:"Call 044-791-0630", correct:true, msg:"It's super effective!\nHelp is on the way from Bulacan Medical Center."},
-      opt2: {text:"Give them water", correct:false, msg:"Attack missed!\nThey choked, worsening their condition."} },
-    { id:'crime', name:'PICKPOCKET', icon:'icon_crime',
-      intro: "A thief grabs a bag in the crowd!\nWild CRIME appeared!",
-      opt1: {text:"Fight back unarmed", correct:false, msg:"Attack missed!\nYou got injured confronting the suspect."},
-      opt2: {text:"Shout for Help", correct:true, msg:"It's super effective!\nThe thief dropped the bag and fled."} },
-];
-
-/* ---------- 5. SOUND (Web Audio) ---------- */
+/* ---------- 7. TUNOG (Web Audio) ---------- */
 let audioCtx = null;
 function ensureAudio(){
     if(!audioCtx){
@@ -667,15 +1821,20 @@ function sfxDoor(){ beep(330,0.05,'triangle',0.05); beep(440,0.08,'triangle',0.0
 function sfxEncounter(){ beep(440,0.08,'square',0.045); beep(330,0.08,'square',0.045,0.08); beep(550,0.08,'square',0.045,0.16); beep(660,0.14,'square',0.045,0.24); }
 function sfxBadge(){ beep(523,0.09,'square',0.05); beep(659,0.09,'square',0.05,0.09); beep(784,0.09,'square',0.05,0.18); beep(1046,0.18,'square',0.05,0.27); }
 function sfxBlip(){ beep(1300,0.012,'square',0.012); }
+function sfxGood(){ beep(784,0.07,'square',0.045); beep(1046,0.12,'square',0.045,0.07); }
+function sfxBad(){ beep(220,0.09,'sawtooth',0.04); beep(160,0.14,'sawtooth',0.04,0.09); }
+function sfxVictory(){
+    [523,659,784,1046,1318].forEach(function(f,i){ beep(f,0.14,'square',0.05,i*0.13); });
+}
 
-/* ---------- 6. SPRITE / DRAW HELPERS ---------- */
+/* ---------- 8. TULONG SA PAGGUHIT ---------- */
 function frameImg(prefix, dir, frame){
-    let d = dir==='right' ? 'left' : dir;
+    const d = dir==='right' ? 'left' : dir;
     let key = prefix+'_'+d+'_'+frame;
     if(IMG[key]) return IMG[key];
     key = prefix+'_'+d+'_0';
     if(IMG[key]) return IMG[key];
-    return IMG[prefix+'_down_0'];
+    return IMG[prefix+'_down_0'] || IMG.player_down_0;
 }
 function drawChar(img, dx, dy, flip){
     if(flip){
@@ -688,94 +1847,137 @@ function drawChar(img, dx, dy, flip){
         ctx.drawImage(img,0,0,16,16,dx,dy,TILE,TILE);
     }
 }
-function tileImage(val, waterFrame){
-    if(val===0) return IMG.path;
-    if(val===1) return IMG.lawn;
-    if(val===2) return IMG.tallgrass;
-    if(val===3) return IMG.tree;
-    if(val===4) return waterFrame ? IMG.water2 : IMG.water1;
-    if(val===5) return IMG.flower;
-    if(val===6) return IMG.sign;
-    if(val>=110){
-        const shape=val%10, bld=Math.floor(val/10);
-        if(shape===0) return ROOF_IMG[bld];
-        if(shape===1) return IMG.wallwindow;
-        if(shape===2) return IMG.wallplain;
-        if(shape===3) return IMG.door;
+function tileImage(val, wf){
+    switch(val){
+        case T.PATH:     return IMG.path;
+        case T.LAWN:     return IMG.lawn;
+        case T.GRASS:    return IMG.tallgrass;
+        case T.TREE:     return IMG.tree;
+        case T.WATER:    return wf===0 ? IMG.water1 : wf===1 ? IMG.water2 : IMG.water3;
+        case T.FLOWER:   return IMG.flower;
+        case T.SIGN:     return IMG.sign;
+        case T.ROADH:    return IMG.roadh;
+        case T.ROADV:    return IMG.roadv;
+        case T.ROADX:    return IMG.roadx;
+        case T.PLAZA:    return IMG.plaza;
+        case T.BRIDGE:   return IMG.bridge;
+        case T.DIRT:     return IMG.dirt;
+        case T.HEDGE:    return IMG.hedge;
+        case T.MONUMENT: return IMG.monument;
+    }
+    if(val >= 110){
+        const bld = Math.floor(val/10), shape = val%10;
+        const def = BUILDING_INDEX[bld] || {};
+        const roof = def.roof || '#c0392b';
+        if(shape===0) return roofImg(roof,'plain');
+        if(shape===4) return roofImg(roof,'church');
+        if(shape===5) return roofImg(roof,'dome');
+        if(shape===3) return def.wall==='glass' ? IMG.glassdoor : IMG.door;
+        if(shape===1) return def.wall==='stone' ? IMG.wallstonewin : def.wall==='glass' ? IMG.glasswall : IMG.wallwindow;
+        if(shape===2) return def.wall==='stone' ? IMG.wallstone : def.wall==='glass' ? IMG.glasswall : IMG.wallplain;
     }
     return IMG.lawn;
 }
 
-/* ---------- 7. CAMERA / RENDER ---------- */
+/* ---------- 9. CAMERA AT RENDER ---------- */
 function clamp(v,lo,hi){ return Math.max(lo, Math.min(hi, v)); }
 function updateCamera(){
     const vw=VIEW_W*TILE, vh=VIEW_H*TILE;
     camera.x = clamp(player.px + TILE/2 - vw/2, 0, MAP_W*TILE - vw);
     camera.y = clamp(player.py + TILE/2 - vh/2, 0, MAP_H*TILE - vh);
 }
-let waterFrame = 0, waterTimer = 0, npcTimer = 0;
+let waterFrame = 0, waterTimer = 0, npcTimer = 0, shakeAmt = 0;
 
 function render(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
-    const startCol = Math.floor(camera.x/TILE), startRow = Math.floor(camera.y/TILE);
-    const endCol = Math.ceil((camera.x+VIEW_W*TILE)/TILE), endRow = Math.ceil((camera.y+VIEW_H*TILE)/TILE);
-    for(let ty=startRow; ty<endRow; ty++){
-        for(let tx=startCol; tx<endCol; tx++){
+    let ox = 0, oy = 0;
+    if(shakeAmt > 0.2 && SETTINGS.fx){
+        ox = (Math.random()*2-1)*shakeAmt;
+        oy = (Math.random()*2-1)*shakeAmt;
+    }
+    const camX = camera.x - ox, camY = camera.y - oy;
+    const startCol = Math.floor(camX/TILE), startRow = Math.floor(camY/TILE);
+    const endCol = Math.ceil((camX+VIEW_W*TILE)/TILE), endRow = Math.ceil((camY+VIEW_H*TILE)/TILE);
+    for(let ty=startRow; ty<=endRow; ty++){
+        for(let tx=startCol; tx<=endCol; tx++){
             if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) continue;
             const img = tileImage(mapData[ty][tx], waterFrame);
-            ctx.drawImage(img,0,0,16,16, tx*TILE-camera.x, ty*TILE-camera.y, TILE, TILE);
+            ctx.drawImage(img,0,0,16,16, Math.round(tx*TILE-camX), Math.round(ty*TILE-camY), TILE, TILE);
         }
     }
     for(const npc of npcs){
+        if(npc.tx*TILE-camX < -TILE || npc.tx*TILE-camX > VIEW_W*TILE) continue;
+        if(npc.ty*TILE-camY < -TILE || npc.ty*TILE-camY > VIEW_H*TILE) continue;
         const img = frameImg(npc.key, npc.dir, npc.frame);
-        drawChar(img, npc.tx*TILE-camera.x, npc.ty*TILE-camera.y, npc.dir==='right');
+        drawChar(img, Math.round(npc.tx*TILE-camX), Math.round(npc.ty*TILE-camY), npc.dir==='right');
     }
     const pimg = frameImg('player', player.dir, player.frame);
-    drawChar(pimg, player.px-camera.x, player.py-camera.y, player.dir==='right');
+    drawChar(pimg, Math.round(player.px-camX), Math.round(player.py-camY), player.dir==='right');
 }
 
-/* ---------- 8. MOVEMENT / INTERACTION ---------- */
+/* ---------- 10. GALAW AT PAKIKIPAG-UGNAYAN ---------- */
 function walkableTile(tx,ty){
     if(tx<0||ty<0||tx>=MAP_W||ty>=MAP_H) return false;
-    const v = mapData[ty][tx];
-    return v===0||v===1||v===2||v===5;
+    return !!WALKABLE[mapData[ty][tx]];
 }
-function npcAt(tx,ty){ return npcs.find(n=>n.tx===tx && n.ty===ty); }
+function npcAt(tx,ty){ return npcs.find(function(n){ return n.tx===tx && n.ty===ty; }); }
 
 function onArrive(){
     const v = mapData[player.ty][player.tx];
-    if(v===2 && Math.random()<0.15) triggerBattle();
+    if(v===T.GRASS && Math.random() < 0.16) triggerBattle(pickIncident(player.tx, player.ty));
 }
 function handleBlocked(nx,ny,npc){
     if(npc){
         const opp = {up:'down',down:'up',left:'right',right:'left'};
         npc.dir = opp[player.dir];
         sfxSelect();
-        showDialogPages(npc.lines.slice());
+        talkToNpc(npc);
         return;
     }
     if(nx<0||ny<0||nx>=MAP_W||ny>=MAP_H){ sfxBump(); return; }
     const v = mapData[ny][nx];
-    if(v===6){
+    if(v===T.SIGN){
         sfxSelect();
-        showDialogPages((SIGN_TEXT[ny+'_'+nx] || ["A sign."]).slice());
+        showDialogPages((SIGN_TEXT[ny+'_'+nx] || ['Isang karatula.']).slice());
         return;
     }
+    if(v===T.MONUMENT){
+        const lid = MONUMENTS[ny+'_'+nx];
+        if(lid){ sfxSelect(); openLandmark(lid); return; }
+        sfxBump(); return;
+    }
     if(v>=110){
-        const shape=v%10, bld=Math.floor(v/10);
+        const shape = v%10, bld = Math.floor(v/10);
         if(shape===3){ handleDoor(bld); return; }
     }
     sfxBump();
 }
 function handleDoor(bld){
+    const def = BUILDING_INDEX[bld];
+    if(!def){ sfxBump(); return; }
     sfxDoor();
-    openDirectory(bld);
+    if(def.kind==='base')      openDirectory(bld);
+    else if(def.kind==='landmark') openLandmark(bld);
+    else {
+        const h = HOUSES[bld];
+        showDialogPages(h ? h.lines.slice() : ['Nakasara ang pinto.'], h ? h.name : null);
+    }
+}
+function talkToNpc(npc){
+    const pages = npc.lines.slice();
+    let onEnd = null;
+    if(npc.inc && !dexFound.has(npc.inc)){
+        onEnd = function(){ triggerBattle(npc.inc); };
+    } else if(npc.inc){
+        pages[pages.length-1] = 'Magaling! Alam mo na ang tamang tugon dito.\nIpasa mo naman ito sa iba nating kababayan.';
+    }
+    showDialogPages(pages, npc.name, onEnd);
 }
 function attemptMove(dir){
     if(gameState!=='overworld' || player.moving) return;
     player.dir = dir;
-    const [dx,dy] = DIRS[dir];
-    const nx = player.tx+dx, ny = player.ty+dy;
+    const d = DIRS[dir];
+    const nx = player.tx+d[0], ny = player.ty+d[1];
     const blockingNpc = npcAt(nx,ny);
     if(!blockingNpc && walkableTile(nx,ny)){
         player.fromX=player.px; player.fromY=player.py;
@@ -787,39 +1989,31 @@ function attemptMove(dir){
         handleBlocked(nx,ny,blockingNpc);
     }
 }
-function openDirectory(bldId){
-    sfxSelect();
-    const data = DIRECTORIES[bldId];
-    if(!data) return;
-    document.getElementById('dir-title').textContent = data.title;
-    document.getElementById('dir-hotline').textContent = data.hotline;
-    const ul = document.getElementById('dir-list');
-    ul.innerHTML = '';
-    data.items.forEach(item => {
-        const li = document.createElement('li');
-        li.textContent = item;
-        ul.appendChild(li);
-    });
-    gameState = 'menu';
-    document.getElementById('directory-screen').classList.add('active');
-}
-function closeDirectory(){
-    sfxSelect();
-    document.getElementById('directory-screen').classList.remove('active');
-    gameState='overworld';
+/* Pumipili ng insidente: kung ano ang bagay sa lugar, at inuuna ang hindi pa natatapos */
+function pickIncident(tx,ty){
+    const cats = zoneCats(tx,ty);
+    const cat = cats[Math.floor(Math.random()*cats.length)];
+    const pool = catIncidents(cat);
+    const fresh = pool.filter(function(i){ return !dexFound.has(i.id); });
+    const use = fresh.length ? fresh : pool;
+    return use[Math.floor(Math.random()*use.length)].id;
 }
 
-/* ---------- 9. DIALOG SYSTEM (typewriter) ---------- */
+/* ---------- 11. SISTEMA NG USAPAN (typewriter) ---------- */
 const dialogEl = document.getElementById('dialog');
 const dialogTextEl = document.getElementById('dialog-text');
-const dlg = { pages:[], index:0, typing:false, timer:null, returnState:'overworld' };
+const dialogNameEl = document.getElementById('dialog-name');
+const dlg = { pages:[], index:0, typing:false, timer:null, returnState:'overworld', onEnd:null };
 
-function showDialogPages(pages){
+function showDialogPages(pages, speaker, onEnd){
     dlg.pages = pages;
     dlg.index = 0;
+    dlg.onEnd = onEnd || null;
     dlg.returnState = (gameState==='overworld') ? 'overworld' : gameState;
     gameState = 'dialog';
     dialogEl.style.display = 'block';
+    if(speaker){ dialogNameEl.textContent = speaker; dialogNameEl.classList.add('show'); }
+    else { dialogNameEl.classList.remove('show'); }
     startPage();
 }
 function startPage(){
@@ -827,9 +2021,15 @@ function startPage(){
     dialogEl.classList.remove('show-arrow');
     dialogTextEl.textContent = '';
     clearInterval(dlg.timer);
-    let i = 0;
     const text = dlg.pages[dlg.index];
-    dlg.timer = setInterval(()=>{
+    if(!SETTINGS.fx){ // "laktawan ang animasyon" — diretsong teksto
+        dialogTextEl.textContent = text;
+        dlg.typing = false;
+        dialogEl.classList.add('show-arrow');
+        return;
+    }
+    let i = 0;
+    dlg.timer = setInterval(function(){
         i++;
         dialogTextEl.textContent = text.slice(0,i);
         if(i % 4 === 0) sfxBlip();
@@ -838,7 +2038,7 @@ function startPage(){
             dlg.typing = false;
             dialogEl.classList.add('show-arrow');
         }
-    },28);
+    }, textSpeed());
 }
 function advanceDialog(){
     if(dlg.typing){
@@ -852,23 +2052,597 @@ function advanceDialog(){
     if(dlg.index >= dlg.pages.length){
         dialogEl.style.display = 'none';
         dialogEl.classList.remove('show-arrow');
+        dialogNameEl.classList.remove('show');
         gameState = dlg.returnState;
+        const cb = dlg.onEnd; dlg.onEnd = null;
+        if(cb) cb();
     } else {
         startPage();
     }
 }
-dialogEl.addEventListener('click', ()=>{ if(gameState==='dialog'){ ensureAudio(); advanceDialog(); } });
+dialogEl.addEventListener('click', function(){ if(gameState==='dialog'){ ensureAudio(); advanceDialog(); } });
 
-/* ---------- 10. UPDATE LOOP ---------- */
+/* ---------- 12. MGA OVERLAY: BASE, LANDMARK, DISASTERDEX, MENU ---------- */
+const infoScreen   = document.getElementById('info-screen');
+const dexScreen    = document.getElementById('dex-screen');
+const settingsScreen = document.getElementById('settings-screen');
+const badgeScreen  = document.getElementById('badge-screen');
+const endingScreen = document.getElementById('ending-screen');
+const dexCounterEl = document.getElementById('dex');
+
+function makeIconCanvas(inc, size){
+    const c = document.createElement('canvas');
+    c.width = 16; c.height = 16;
+    c.style.width = size+'px'; c.style.height = size+'px';
+    const cx = c.getContext('2d');
+    cx.imageSmoothingEnabled = false;
+    cx.drawImage(iconImg(inc.icon, inc.tint),0,0);
+    return c;
+}
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function listHtml(arr){
+    return '<ul>' + arr.map(function(i){ return '<li>'+esc(i)+'</li>'; }).join('') + '</ul>';
+}
+
+/* --- Emergency basecamp (may tab) --- */
+let curBase = null, curBaseTab = 'hotline';
+function openDirectory(bldId){
+    const data = BASECAMPS[bldId];
+    if(!data) return;
+    sfxSelect();
+    curBase = bldId; curBaseTab = 'hotline';
+    gameState = 'menu';
+    infoScreen.classList.add('active');
+    renderBase();
+}
+function renderBase(){
+    const data = BASECAMPS[curBase];
+    document.getElementById('info-title').textContent = data.title;
+    document.getElementById('info-sub').textContent = data.sub;
+    const tabs = [['hotline','HOTLINE'],['gabay','GABAY'],['payo','PAYO'],['dex','DEX']];
+    const tabEl = document.getElementById('info-tabs');
+    tabEl.innerHTML = '';
+    tabs.forEach(function(t){
+        const b = document.createElement('button');
+        b.className = 'tab' + (curBaseTab===t[0] ? ' on' : '');
+        b.textContent = t[1];
+        b.onclick = function(){ sfxSelect(); curBaseTab = t[0]; renderBase(); };
+        tabEl.appendChild(b);
+    });
+    const body = document.getElementById('info-body');
+    if(curBaseTab==='hotline'){
+        body.innerHTML = '<p class="hot">' + data.hotlines.map(esc).join('<br>') + '</p>' +
+            '<div class="card-note">Sa anumang emergency, tumawag sa <b>911</b>. ' +
+            'I-verify paminsan-minsan ang mga lokal na numero sa opisyal na pahina ng Pamahalaang Lungsod ng Malolos, dahil maaaring magbago ang mga ito.</div>';
+    } else if(curBaseTab==='gabay'){
+        body.innerHTML = listHtml(data.gabay);
+    } else if(curBaseTab==='payo'){
+        body.innerHTML = listHtml(data.payo);
+    } else {
+        const list = catIncidents(data.cat);
+        const done = list.filter(function(i){ return dexFound.has(i.id); }).length;
+        body.innerHTML = '<p>' + esc(CATS[data.cat].name) + ': ' + done + '/' + list.length + ' natutunan.</p>';
+        const wrap = document.createElement('div');
+        wrap.className = 'dex-grid';
+        list.forEach(function(inc){ wrap.appendChild(dexCell(inc)); });
+        body.appendChild(wrap);
+    }
+}
+function closeDirectory(){
+    sfxSelect();
+    infoScreen.classList.remove('active');
+    curBase = null;
+    gameState = 'overworld';
+}
+
+/* --- Landmark card --- */
+function openLandmark(id){
+    const lm = LANDMARKS[id];
+    if(!lm) return;
+    sfxSelect();
+    visitedLandmarks.add(id);
+    saveGame();
+    curBase = null;
+    gameState = 'menu';
+    infoScreen.classList.add('active');
+    document.getElementById('info-title').textContent = lm.name;
+    document.getElementById('info-sub').textContent = lm.sub;
+    document.getElementById('info-tabs').innerHTML = '';
+    document.getElementById('info-body').innerHTML =
+        '<p>' + esc(lm.desc) + '</p>' +
+        '<div class="card-note"><b>Payo sa kahandaan:</b><br>' + esc(lm.tip) + '</div>' +
+        '<div class="sub">Napuntahang landmark: ' + visitedLandmarks.size + '/' + Object.keys(LANDMARKS).length + '</div>';
+    updateHud();
+}
+
+/* --- DisasterDex --- */
+let curDexTab = 'sunog';
+function dexCell(inc){
+    const cell = document.createElement('div');
+    const known = dexFound.has(inc.id);
+    cell.className = 'dex-cell' + (known ? '' : ' locked');
+    cell.appendChild(makeIconCanvas(inc, 22));
+    const s = document.createElement('span');
+    s.textContent = known ? inc.name : '???';
+    cell.appendChild(s);
+    if(known) cell.onclick = function(){ sfxSelect(); showDexEntry(inc); };
+    return cell;
+}
+function openDex(){
+    if(gameState!=='overworld' && gameState!=='menu') return;
+    ensureAudio(); sfxSelect();
+    gameState = 'menu';
+    dexScreen.classList.add('active');
+    renderDex();
+}
+function renderDex(){
+    document.getElementById('dex-bar-fill').style.width =
+        Math.round(dexFound.size / INCIDENTS.length * 100) + '%';
+    document.getElementById('dex-sub').textContent =
+        'Natutunan: ' + dexFound.size + '/' + INCIDENTS.length +
+        '  •  Landmark: ' + visitedLandmarks.size + '/' + Object.keys(LANDMARKS).length;
+    const tabEl = document.getElementById('dex-tabs');
+    tabEl.innerHTML = '';
+    CAT_ORDER.forEach(function(c){
+        const b = document.createElement('button');
+        b.className = 'tab' + (curDexTab===c ? ' on' : '');
+        b.textContent = CATS[c].short;
+        b.onclick = function(){ sfxSelect(); curDexTab = c; renderDex(); };
+        tabEl.appendChild(b);
+    });
+    const list = catIncidents(curDexTab);
+    const done = list.filter(function(i){ return dexFound.has(i.id); }).length;
+    const body = document.getElementById('dex-body');
+    body.innerHTML = '<p>' + esc(CATS[curDexTab].desc) + '<br><b>' + done + '/' + list.length + '</b> natutunan.' +
+        (badges[curDexTab] ? ' ★ ' + esc(CATS[curDexTab].badge) : '') + '</p>';
+    const grid = document.createElement('div');
+    grid.className = 'dex-grid';
+    list.forEach(function(inc){ grid.appendChild(dexCell(inc)); });
+    body.appendChild(grid);
+}
+function showDexEntry(inc){
+    const body = document.getElementById('dex-body');
+    body.innerHTML = '';
+    const head = document.createElement('div');
+    head.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:8px;';
+    head.appendChild(makeIconCanvas(inc, 34));
+    const t = document.createElement('div');
+    t.innerHTML = '<b style="font-size:10px;">'+esc(inc.name)+'</b><br><span style="font-size:8px;color:#5b5b74;">'+
+                  esc(CATS[inc.cat].name)+'</span>';
+    head.appendChild(t);
+    body.appendChild(head);
+    const d = document.createElement('div');
+    d.innerHTML =
+        '<p>'+esc(inc.dex.ano)+'</p>' +
+        '<div class="card-note card-warn"><b>Mga palatandaan:</b><br>'+esc(inc.dex.tanda)+'</div>' +
+        '<div class="card-note"><b>Tamang tugon:</b><br>'+esc(inc.dex.tugon)+'</div>';
+    body.appendChild(d);
+    const back = document.createElement('button');
+    back.className = 'menu-btn';
+    back.textContent = '◀ BALIK SA LISTAHAN';
+    back.onclick = function(){ sfxSelect(); renderDex(); };
+    body.appendChild(back);
+}
+function closeDex(){
+    sfxSelect();
+    dexScreen.classList.remove('active');
+    gameState = 'overworld';
+}
+
+/* --- Menu / settings --- */
+function openSettings(){
+    if(gameState!=='overworld' && gameState!=='menu') return;
+    ensureAudio(); sfxSelect();
+    gameState = 'menu';
+    settingsScreen.classList.add('active');
+    renderSettings();
+}
+function renderSettings(){
+    const body = document.getElementById('settings-body');
+    body.innerHTML = '';
+    const rows = [
+        {label:'Tunog', value: SETTINGS.sound ? 'BUKAS' : 'SARADO', act:function(){
+            SETTINGS.sound = !SETTINGS.sound; muted = !SETTINGS.sound;
+            document.getElementById('mute-btn').textContent = muted ? '♪ TUNOG: SARADO' : '♪ TUNOG: BUKAS';
+        }},
+        {label:'Mga epekto at animasyon', value: SETTINGS.fx ? 'BUKAS' : 'SARADO', act:function(){
+            SETTINGS.fx = !SETTINGS.fx;
+            document.body.classList.toggle('no-anim', !SETTINGS.fx);
+            if(!SETTINGS.fx) fxSet(null);
+        }},
+        {label:'Bilis ng teksto', value: SETTINGS.speed.toUpperCase(), act:function(){
+            const order = ['mabagal','normal','mabilis'];
+            SETTINGS.speed = order[(order.indexOf(SETTINGS.speed)+1) % order.length];
+        }},
+        {label:'Malaking teksto', value: SETTINGS.bigText ? 'BUKAS' : 'SARADO', act:function(){
+            SETTINGS.bigText = !SETTINGS.bigText;
+            document.getElementById('game-container').classList.toggle('big-text', SETTINGS.bigText);
+        }},
+    ];
+    rows.forEach(function(r){
+        const b = document.createElement('button');
+        b.className = 'menu-btn';
+        b.textContent = r.label + ': ' + r.value;
+        b.onclick = function(){ sfxSelect(); r.act(); saveGame(); renderSettings(); };
+        body.appendChild(b);
+    });
+    const dexBtn = document.createElement('button');
+    dexBtn.className = 'menu-btn'; dexBtn.textContent = '📘 BUKSAN ANG DISASTERDEX';
+    dexBtn.onclick = function(){ closeSettings(); openDex(); };
+    body.appendChild(dexBtn);
+
+    const tutBtn = document.createElement('button');
+    tutBtn.className = 'menu-btn'; tutBtn.textContent = '↻ ULITIN ANG TUTORIAL';
+    tutBtn.onclick = function(){ closeSettings(); showTutorial(); };
+    body.appendChild(tutBtn);
+
+    const prog = document.createElement('div');
+    prog.className = 'card-note';
+    prog.innerHTML = '<b>Progreso:</b><br>' +
+        CAT_ORDER.map(function(c){
+            const list = catIncidents(c);
+            const done = list.filter(function(i){ return dexFound.has(i.id); }).length;
+            return esc(CATS[c].name)+': '+done+'/'+list.length + (badges[c] ? ' ★' : '');
+        }).join('<br>') +
+        '<br>Landmark: ' + visitedLandmarks.size + '/' + Object.keys(LANDMARKS).length;
+    body.appendChild(prog);
+
+    const reset = document.createElement('button');
+    reset.className = 'menu-btn';
+    reset.textContent = '⌫ BURAHIN ANG PROGRESO';
+    reset.onclick = function(){
+        sfxSelect();
+        reset.textContent = '⚠ PINDUTIN ULIT PARA KUMPIRMAHIN';
+        reset.onclick = function(){
+            dexFound = new Set(); visitedLandmarks = new Set(); endingShown = false;
+            CAT_ORDER.forEach(function(c){ badges[c]=false; });
+            saveGame(); refreshBadgeSlots(); updateHud(); renderSettings();
+        };
+    };
+    body.appendChild(reset);
+}
+function closeSettings(){
+    sfxSelect();
+    settingsScreen.classList.remove('active');
+    gameState = 'overworld';
+}
+
+/* --- HUD --- */
+function updateHud(){
+    dexCounterEl.textContent = 'DEX ' + dexFound.size + '/' + INCIDENTS.length;
+    const earned = CAT_ORDER.filter(function(c){ return badges[c]; }).length;
+    document.getElementById('hud-role').textContent =
+        earned===4 ? 'BAYANI' : earned>=2 ? 'TAGAPAGTANGGOL' : earned>=1 ? 'KAWAL-HANDA' : 'MAMAMAYAN';
+}
+function refreshBadgeSlots(){
+    CAT_ORDER.forEach(function(cat, i){
+        const slot = document.getElementById('badge-'+i);
+        slot.innerHTML = '';
+        slot.classList.toggle('earned', !!badges[cat]);
+        if(badges[cat]){
+            const c = document.createElement('canvas');
+            c.width=16; c.height=16;
+            const cx = c.getContext('2d');
+            cx.imageSmoothingEnabled = false;
+            cx.drawImage(IMG[CATS[cat].badgeIcon],0,0);
+            slot.appendChild(c);
+        }
+    });
+}
+
+/* ---------- 13. LABAN: MGA SIMULASYON NG KAGIPITAN ---------- */
+let curBattle = null;
+let pendingBadges = [];
+const battleScreen = document.getElementById('battle-screen');
+const battleTextEl = document.getElementById('battle-text');
+const battleActionsEl = document.getElementById('battle-actions');
+const oppNameEl = document.getElementById('opp-name');
+const oppCatEl = document.getElementById('opp-cat');
+const oppHpEl = document.getElementById('opp-hp');
+const plyHpEl = document.getElementById('ply-hp');
+const oppSpriteEl = document.getElementById('opp-sprite');
+
+function typeText(el, text, onDone){
+    clearInterval(el._timer);
+    if(!SETTINGS.fx){ el.textContent = text; if(onDone) onDone(); return; }
+    let i = 0;
+    el.textContent = '';
+    el._timer = setInterval(function(){
+        i++;
+        el.textContent = text.slice(0,i);
+        if(i % 4 === 0) sfxBlip();
+        if(i >= text.length){
+            clearInterval(el._timer);
+            if(onDone) onDone();
+        }
+    }, Math.max(10, textSpeed()-4));
+}
+function drawBattleSprite(canvasId, img, scale){
+    const c = document.getElementById(canvasId);
+    c.width = 16*scale; c.height = 16*scale;
+    const cx = c.getContext('2d');
+    cx.imageSmoothingEnabled = false;
+    cx.clearRect(0,0,c.width,c.height);
+    cx.drawImage(img,0,0,16,16,0,0,c.width,c.height);
+}
+function setHpUI(el, pct){
+    el.style.width = pct+'%';
+    el.style.background = pct>50 ? 'var(--hp-green)' : pct>20 ? 'var(--hp-yellow)' : 'var(--hp-red)';
+}
+function shuffle(arr){
+    const a = arr.slice();
+    for(let i=a.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        const t = a[i]; a[i] = a[j]; a[j] = t;
+    }
+    return a;
+}
+function clearBattleFx(){
+    battleScreen.classList.remove('shaking','bg-fire','bg-water','bg-night');
+    oppSpriteEl.classList.remove('flicker');
+    shakeAmt = 0;
+    fxSet(null);
+}
+function triggerBattle(incId){
+    const inc = INCIDENT_INDEX[incId];
+    if(!inc) return;
+    sfxEncounter();
+    flashScreen();
+    curBattle = { inc:inc, phase:'intro', hp:100, wrong:0, used:{} };
+    fadeTransition(function(){
+        gameState = 'battle';
+        battleScreen.classList.add('active');
+        clearBattleFx();
+        if(inc.bg) battleScreen.classList.add(inc.bg);
+        if(SETTINGS.fx){
+            if(inc.fx==='shake') battleScreen.classList.add('shaking');
+            if(inc.fx==='ember'){ oppSpriteEl.classList.add('flicker'); fxSet('ember'); }
+            if(inc.fx==='rain') fxSet('rain');
+        }
+        setHpUI(plyHpEl, 100);
+        setHpUI(oppHpEl, 100);
+        oppNameEl.textContent = inc.name.toUpperCase();
+        oppCatEl.textContent = CATS[inc.cat].name;
+        drawBattleSprite('opp-sprite', iconImg(inc.icon, inc.tint), 4);
+        drawBattleSprite('ply-sprite', IMG.player_up_0, 6);
+        battleActionsEl.innerHTML = '';
+        typeText(battleTextEl, inc.intro, function(){
+            curBattle.phase = 'choice';
+            renderOptions();
+        });
+    });
+}
+function renderOptions(){
+    battleActionsEl.innerHTML = '';
+    const opts = curBattle._order || (curBattle._order = shuffle(curBattle.inc.opts));
+    opts.forEach(function(o, idx){
+        if(curBattle.used[idx]) return;
+        const b = document.createElement('button');
+        b.className = 'battle-btn';
+        b.textContent = '► ' + o.t;
+        b.onclick = function(){ chooseOption(o, idx); };
+        battleActionsEl.appendChild(b);
+    });
+}
+function singleButton(label, fn){
+    battleActionsEl.innerHTML = '';
+    const b = document.createElement('button');
+    b.className = 'battle-btn';
+    b.textContent = label;
+    b.onclick = fn;
+    battleActionsEl.appendChild(b);
+}
+function chooseOption(opt, idx){
+    ensureAudio();
+    if(curBattle.phase !== 'choice') return;
+    sfxSelect();
+    curBattle.phase = 'typing';
+    curBattle.used[idx] = true;
+    battleActionsEl.innerHTML = '';
+    const inc = curBattle.inc;
+    typeText(battleTextEl, 'Ginamit mo: ' + opt.t.toUpperCase() + '\n' + opt.m, function(){
+        if(opt.ok){
+            sfxGood();
+            setHpUI(oppHpEl, 0);
+            const isNew = !dexFound.has(inc.id);
+            dexFound.add(inc.id);
+            updateHud(); saveGame();
+            const newBadge = checkBadge(inc.cat);
+            setTimeout(function(){
+                curBattle.phase = 'cleared';
+                const extra = isNew ? '\n★ Naidagdag sa DisasterDex: ' + inc.name : '';
+                battleTextEl.textContent += extra;
+                singleButton('◀ BUMALIK SA LUNGSOD', endBattle);
+                if(newBadge) pendingBadges.push(inc.cat);
+            }, 500);
+        } else {
+            sfxBad();
+            curBattle.wrong++;
+            // Ang "Kalma" ay bumababa sa bawat mali ngunit hindi nauubos: layunin ay matuto,
+            // hindi parusahan. Ang bawat maling sagot ay may paliwanag bago ang muling pagsubok.
+            const wrongCount = Math.max(1, inc.opts.filter(function(o){ return !o.ok; }).length);
+            curBattle.hp = Math.max(10, curBattle.hp - Math.floor(80/wrongCount));
+            setHpUI(plyHpEl, curBattle.hp);
+            setTimeout(function(){
+                const left = inc.opts.filter(function(o,i){ return !curBattle.used[i]; }).length;
+                if(left > 0){
+                    curBattle.phase = 'choice';
+                    battleTextEl.textContent += '\n\nSubukan muli — piliin ang mas ligtas na hakbang.';
+                    renderOptions();
+                } else {
+                    // Panangga laban sa pagka-stuck kung sakaling maubos ang lahat ng pagpipilian.
+                    curBattle.phase = 'cleared';
+                    const right = inc.opts.find(function(o){ return o.ok; });
+                    battleTextEl.textContent = 'Aralin natin ito.\n\nANG TAMANG GAWIN:\n' + right.t + '\n\n' + inc.dex.tugon;
+                    singleButton('◀ BALIK — ARALIN MULI', endBattle);
+                }
+            }, 450);
+        }
+    });
+}
+function checkBadge(cat){
+    if(badges[cat]) return false;
+    const list = catIncidents(cat);
+    const all = list.every(function(i){ return dexFound.has(i.id); });
+    if(all){
+        badges[cat] = true;
+        refreshBadgeSlots();
+        updateHud();
+        saveGame();
+        return true;
+    }
+    return false;
+}
+function endBattle(){
+    sfxSelect();
+    battleScreen.classList.remove('active');
+    clearBattleFx();
+    fadeTransition(function(){
+        gameState = 'overworld';
+        if(pendingBadges.length) showBadge(pendingBadges.shift());
+        else checkEnding();
+    });
+}
+
+/* --- Badge unlock --- */
+function showBadge(cat){
+    const c = CATS[cat];
+    gameState = 'menu';
+    badgeScreen.classList.add('active');
+    const cv = document.getElementById('badge-big');
+    cv.width = 16; cv.height = 16;
+    const cx = cv.getContext('2d');
+    cx.imageSmoothingEnabled = false;
+    cx.drawImage(IMG[c.badgeIcon],0,0);
+    document.getElementById('badge-title').textContent = '★ ' + c.badge.toUpperCase() + ' ★';
+    document.getElementById('badge-desc').textContent =
+        'Natapos mo ang lahat ng senaryo sa ' + c.name + '. Ipasa mo ang natutunan mo sa iyong pamilya, kaklase at barangay!';
+    sfxBadge();
+    fxSet('confetti');
+}
+document.getElementById('badge-ok').addEventListener('click', function(){
+    sfxSelect();
+    badgeScreen.classList.remove('active');
+    fxSet(null);
+    if(pendingBadges.length) showBadge(pendingBadges.shift());
+    else { gameState = 'overworld'; checkEnding(); }
+});
+
+/* --- Wakas: Bayani ng Malolos --- */
+function checkEnding(){
+    const all = CAT_ORDER.every(function(c){ return badges[c]; });
+    if(all && !endingShown){
+        endingShown = true;
+        saveGame();
+        showEnding();
+    }
+}
+function showEnding(){
+    gameState = 'menu';
+    endingScreen.classList.add('active');
+    document.getElementById('ending-stats').innerHTML =
+        'DisasterDex: ' + dexFound.size + '/' + INCIDENTS.length + '<br>' +
+        'Landmark na napuntahan: ' + visitedLandmarks.size + '/' + Object.keys(LANDMARKS).length + '<br>' +
+        'Lahat ng apat na badge ay nakamit!<br><br>' +
+        'Handa ka na, Maloleño.<br>Ang tunay na bayani ay ang laging handa.';
+    sfxVictory();
+    fxSet('confetti');
+}
+document.getElementById('ending-ok').addEventListener('click', function(){
+    sfxSelect();
+    endingScreen.classList.remove('active');
+    fxSet(null);
+    gameState = 'overworld';
+});
+
+/* ---------- 14. EPEKTO (particles, shake, flash) ---------- */
+const fxCanvas = document.getElementById('fx');
+const fxCtx = fxCanvas.getContext('2d');
+let particles = [], fxMode = null, fxClipH = 0;
+function fxSet(mode){
+    particles = [];
+    if(!SETTINGS.fx){ fxMode = null; fxCtx.clearRect(0,0,480,480); return; }
+    fxMode = mode;
+    fxClipH = (mode==='rain' || mode==='ember') ? 312 : 480;
+    if(!mode) fxCtx.clearRect(0,0,480,480);
+    if(mode==='confetti'){
+        for(let i=0;i<70;i++){
+            particles.push({
+                x:Math.random()*480, y:-Math.random()*240,
+                vx:(Math.random()-0.5)*60, vy:60+Math.random()*130,
+                s:3+Math.random()*4,
+                c:['#f2c94c','#e0463a','#4a7fd6','#3a9b6e','#ffffff'][Math.floor(Math.random()*5)],
+                life:6
+            });
+        }
+    }
+}
+function fxUpdate(dt){
+    if(!fxMode && particles.length===0) return;
+    const s = Math.min(dt,50)/1000;
+    if(fxMode==='rain' && particles.length < 60){
+        for(let i=0;i<3;i++){
+            particles.push({x:Math.random()*520-20, y:-10, vx:-70, vy:520+Math.random()*180, s:2, c:'#bfe0ff', life:3, rain:true});
+        }
+    }
+    if(fxMode==='ember' && particles.length < 34){
+        for(let i=0;i<2;i++){
+            particles.push({x:180+Math.random()*260, y:200+Math.random()*90,
+                vx:(Math.random()-0.5)*26, vy:-40-Math.random()*60, s:2+Math.random()*2,
+                c:Math.random()<0.5?'#ff9f45':'#ffd93d', life:1.6});
+        }
+    }
+    for(let i=particles.length-1;i>=0;i--){
+        const p = particles[i];
+        p.x += p.vx*s; p.y += p.vy*s; p.life -= s;
+        if(fxMode==='confetti') p.vy += 90*s;
+        if(p.life<=0 || p.y>500 || p.x<-40 || p.x>520) particles.splice(i,1);
+    }
+    fxCtx.clearRect(0,0,480,480);
+    if(!particles.length) return;
+    fxCtx.save();
+    if(fxClipH < 480){ fxCtx.beginPath(); fxCtx.rect(0,0,480,fxClipH); fxCtx.clip(); }
+    for(const p of particles){
+        fxCtx.fillStyle = p.c;
+        if(p.rain){
+            fxCtx.globalAlpha = 0.6;
+            fxCtx.fillRect(p.x, p.y, 1, 9);
+            fxCtx.globalAlpha = 1;
+        } else {
+            fxCtx.fillRect(p.x, p.y, p.s, p.s);
+        }
+    }
+    fxCtx.restore();
+}
+const flashEl = document.getElementById('flash');
+function flashScreen(){
+    if(!SETTINGS.fx) return;
+    flashEl.classList.remove('go');
+    void flashEl.offsetWidth;
+    flashEl.classList.add('go');
+}
+const fadeEl = document.getElementById('fade');
+function fadeTransition(cb){
+    if(!SETTINGS.fx){ cb(); return; }
+    fadeEl.classList.add('show');
+    setTimeout(function(){
+        cb();
+        setTimeout(function(){ fadeEl.classList.remove('show'); }, 80);
+    }, 250);
+}
+
+/* ---------- 15. UPDATE LOOP ---------- */
 let lastTime = 0;
 function update(ts){
     const dt = ts - lastTime; lastTime = ts;
 
     waterTimer += dt;
-    if(waterTimer > 600){ waterTimer = 0; waterFrame = waterFrame ? 0 : 1; }
+    if(waterTimer > 420){ waterTimer = 0; waterFrame = (waterFrame+1) % 3; }
 
     npcTimer += dt;
-    if(npcTimer > 700){ npcTimer = 0; npcs.forEach(n=>{ n.frame = n.frame ? 0 : 1; }); }
+    if(npcTimer > 700){ npcTimer = 0; npcs.forEach(function(n){ n.frame = n.frame ? 0 : 1; }); }
+
+    if(shakeAmt > 0) shakeAmt = Math.max(0, shakeAmt - dt*0.02);
 
     if(gameState === 'overworld'){
         if(player.moving){
@@ -893,6 +2667,7 @@ function update(ts){
         }
         updateCamera();
     }
+    fxUpdate(dt);
 }
 function gameLoop(ts){
     update(ts);
@@ -900,18 +2675,29 @@ function gameLoop(ts){
     requestAnimationFrame(gameLoop);
 }
 
-/* ---------- 11. TITLE SCREEN ---------- */
+/* ---------- 16. TITLE SCREEN AT TUTORIAL ---------- */
+const TUTORIAL_PAGES = [
+    'Maligayang pagdating sa Lungsod ng Malolos!\nIkaw ay isang kabataang sinasanay ng CDRRMO.',
+    'Gamitin ang arrow keys o D-pad para maglakad. Pindutin ang Enter, Space o A para kausapin at pumasok.',
+    'Bisitahin ang CDRRMO, Bulacan Medical Center, Himpilan ng Pulisya at ng Bumbero para sa mga hotline at gabay.',
+    'Ang mga landmark tulad ng Barasoain, Katedral at Kapitolyo ay may kuwento ng ating bayan — libutin mo sila.',
+    'Sa kadamuhan at sa ilang kausap ay may lilitaw na sitwasyong pang-emergency. Piliin ang tamang tugon!',
+    'Kumpletuhin ang bawat kategorya upang makamit ang apat na badge at maging BAYANI NG MALOLOS.',
+];
+function showTutorial(){ showDialogPages(TUTORIAL_PAGES.slice(), 'Gabay ng CDRRMO'); }
+
 function startGame(){
     ensureAudio();
     sfxConfirm();
     document.getElementById('startup').classList.remove('active');
     gameState = 'overworld';
     updateCamera();
-    showDialogPages([
-        "Disaster Readiness Guide Active.",
-        "Explore Malolos City and visit the local directories for essential hotlines.",
-        "Walking in tall grass will simulate emergency scenarios to test your response!",
-    ]);
+    if(!tutorialSeen){
+        tutorialSeen = true; saveGame();
+        showTutorial();
+    } else {
+        showDialogPages(['Maligayang balik, Maloleño!\nIpagpatuloy natin ang paghahanda.'], 'Gabay ng CDRRMO');
+    }
 }
 document.getElementById('start-btn').addEventListener('click', startGame);
 
@@ -919,189 +2705,134 @@ const titleSpriteCanvas = document.getElementById('title-sprite');
 const titleCtx = titleSpriteCanvas.getContext('2d');
 titleCtx.imageSmoothingEnabled = false;
 let titleFrame = 0;
-setInterval(()=>{
+setInterval(function(){
+    if(gameState!=='title') return;
     titleFrame = titleFrame ? 0 : 1;
     titleCtx.clearRect(0,0,48,48);
     titleCtx.drawImage(IMG['player_down_'+titleFrame],0,0,16,16,0,0,48,48);
-},420);
+}, 420);
 
-/* ---------- 12. FADE TRANSITION ---------- */
-const fadeEl = document.getElementById('fade');
-function fadeTransition(cb){
-    fadeEl.classList.add('show');
-    setTimeout(()=>{
-        cb();
-        setTimeout(()=>fadeEl.classList.remove('show'), 80);
-    }, 240);
-}
-
-/* ---------- 13. BATTLE SYSTEM (Emergency Simulations) ---------- */
-let curBattle = null;
-const battleTextEl = document.getElementById('battle-text');
-const oppNameEl = document.getElementById('opp-name');
-const oppHpEl = document.getElementById('opp-hp');
-const plyHpEl = document.getElementById('ply-hp');
-const btnAction1 = document.getElementById('btn-action1');
-const btnAction2 = document.getElementById('btn-action2');
-
-function typeText(el, text, onDone){
-    let i = 0;
-    el.textContent = '';
-    clearInterval(el._timer);
-    el._timer = setInterval(()=>{
-        i++;
-        el.textContent = text.slice(0,i);
-        if(i % 4 === 0) sfxBlip();
-        if(i >= text.length){
-            clearInterval(el._timer);
-            if(onDone) onDone();
-        }
-    }, 24);
-}
-function drawBattleSprite(canvasId, img, scale){
-    const c = document.getElementById(canvasId);
-    c.width = 16*scale; c.height = 16*scale;
-    const cx = c.getContext('2d');
-    cx.imageSmoothingEnabled = false;
-    cx.clearRect(0,0,c.width,c.height);
-    cx.drawImage(img,0,0,16,16,0,0,c.width,c.height);
-}
-function setHpUI(el, pct){
-    el.style.width = pct+'%';
-    el.style.background = pct>50 ? 'var(--hp-green)' : pct>20 ? 'var(--hp-yellow)' : 'var(--hp-red)';
-}
-function showBattleActions(show){
-    document.getElementById('battle-actions').style.visibility = show ? 'visible' : 'hidden';
-}
-
-function triggerBattle(){
-    sfxEncounter();
-    const scIdx = Math.floor(Math.random() * EMERGENCIES.length);
-    curBattle = { data: EMERGENCIES[scIdx], phase: 'intro', id: EMERGENCIES[scIdx].id };
-    
-    fadeTransition(()=>{
-        gameState = 'battle';
-        document.getElementById('battle-screen').classList.add('active');
-        setHpUI(plyHpEl, 100);
-        setHpUI(oppHpEl, 100);
-        
-        oppNameEl.textContent = curBattle.data.name;
-        drawBattleSprite('opp-sprite', IMG[curBattle.data.icon], 4);
-        drawBattleSprite('ply-sprite', IMG.player_up_0, 6);
-        
-        // Randomize button order
-        if(Math.random()>0.5){
-            btnAction1.textContent = '► '+curBattle.data.opt1.text; btnAction1._opt = curBattle.data.opt1;
-            btnAction2.textContent = '► '+curBattle.data.opt2.text; btnAction2._opt = curBattle.data.opt2;
-        } else {
-            btnAction1.textContent = '► '+curBattle.data.opt2.text; btnAction1._opt = curBattle.data.opt2;
-            btnAction2.textContent = '► '+curBattle.data.opt1.text; btnAction2._opt = curBattle.data.opt1;
-        }
-        
-        showBattleActions(false);
-        typeText(battleTextEl, curBattle.data.intro, ()=>{ curBattle.phase='choice'; showBattleActions(true); });
-    });
-}
-
-function awardReadinessBadge(){
-    let count = dexFound.size;
-    let earnedIdx = -1;
-    if(count >= 1 && !badges[0]) earnedIdx = 0;
-    if(count >= 3 && !badges[1]) earnedIdx = 1;
-    if(count >= 5 && !badges[2]) earnedIdx = 2;
-    
-    if(earnedIdx >= 0){
-        badges[earnedIdx] = true;
-        const slot = document.getElementById('badge-'+earnedIdx);
-        slot.classList.add('earned');
-        const c = document.createElement('canvas');
-        c.width=12; c.height=12;
-        const cx = c.getContext('2d'); cx.imageSmoothingEnabled=false;
-        cx.fillStyle = '#f7d51d';
-        cx.fillRect(2,2,8,8); // Generic simple badge icon block
-        slot.innerHTML=''; slot.appendChild(c);
-        sfxBadge();
-    }
-}
-
-function handleActionClick(btn){
-    ensureAudio();
-    if(curBattle.phase==='cleared'){
-        sfxSelect();
-        endBattle();
-        return;
-    }
-    if(curBattle.phase!=='choice') return;
-    sfxSelect();
-    showBattleActions(false);
-    curBattle.phase='typing';
-    
-    const opt = btn._opt;
-    
-    typeText(battleTextEl, "You used: " + opt.text.toUpperCase() + "...\n" + opt.msg, ()=>{
-        if(opt.correct){
-            setHpUI(oppHpEl, 0);
-            dexFound.add(curBattle.id);
-            document.getElementById('dex').textContent = 'SURVIVOR '+dexFound.size+'/'+EMERGENCIES.length;
-            setTimeout(()=>{
-                awardReadinessBadge();
-                curBattle.phase = 'cleared';
-                btnAction1.textContent = '► RETURN TO TOWN';
-                btnAction2.style.display = 'none';
-                showBattleActions(true);
-            }, 600);
-        } else {
-            setHpUI(plyHpEl, 0);
-            sfxBump();
-            setTimeout(()=>{
-                curBattle.phase = 'cleared';
-                btnAction1.textContent = '► FLEE TO MEDICAL CENTER';
-                btnAction2.style.display = 'none';
-                showBattleActions(true);
-            }, 600);
-        }
-    });
-}
-
-function endBattle(){
-    btnAction2.style.display = 'block'; // reset
-    document.getElementById('battle-screen').classList.remove('active');
-    fadeTransition(()=>{ gameState='overworld'; });
-}
-btnAction1.addEventListener('click', ()=>handleActionClick(btnAction1));
-btnAction2.addEventListener('click', ()=>handleActionClick(btnAction2));
-
-/* ---------- 14. INPUT ---------- */
-window.addEventListener('keydown', (e)=>{
-    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+/* ---------- 17. INPUT ---------- */
+window.addEventListener('keydown', function(e){
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].indexOf(e.key) >= 0) e.preventDefault();
     keys[e.key] = true;
     if(gameState==='title' && (e.key==='Enter'||e.key===' ')){ startGame(); return; }
     if(gameState==='dialog' && (e.key==='Enter'||e.key===' ')){ ensureAudio(); advanceDialog(); return; }
+    if(e.key==='d'||e.key==='D'){
+        if(gameState==='overworld'){ openDex(); return; }
+    }
+    if(e.key==='Escape'){
+        if(gameState==='overworld') openSettings();
+        else if(settingsScreen.classList.contains('active')) closeSettings();
+        else if(dexScreen.classList.contains('active')) closeDex();
+        else if(infoScreen.classList.contains('active')) closeDirectory();
+    }
 });
-window.addEventListener('keyup', (e)=>{ keys[e.key] = false; });
+window.addEventListener('keyup', function(e){ keys[e.key] = false; });
 
-/* ---------- 15. SOUND TOGGLE & TOUCH CONTROLS ---------- */
+/* ---------- 18. TUNOG, TOUCH CONTROLS, LAYOUT ---------- */
 const muteBtn = document.getElementById('mute-btn');
-muteBtn.addEventListener('click', ()=>{
+muteBtn.addEventListener('click', function(){
     ensureAudio();
     muted = !muted;
-    muteBtn.textContent = muted ? '♪ SOUND: OFF' : '♪ SOUND: ON';
+    SETTINGS.sound = !muted;
+    muteBtn.textContent = muted ? '♪ TUNOG: SARADO' : '♪ TUNOG: BUKAS';
+    saveGame();
 });
-document.querySelectorAll('.dpad button[data-key]').forEach(btn=>{
+document.querySelectorAll('.dpad button[data-key]').forEach(function(btn){
     const k = btn.dataset.key;
     const dir = {ArrowUp:'up',ArrowDown:'down',ArrowLeft:'left',ArrowRight:'right'}[k];
-    const on = (e)=>{ e.preventDefault(); ensureAudio(); keys[k]=true; attemptMove(dir); };
-    const off = (e)=>{ e.preventDefault(); keys[k]=false; };
-    btn.addEventListener('touchstart', on); btn.addEventListener('touchend', off); btn.addEventListener('touchcancel', off);
-    btn.addEventListener('mousedown', on); btn.addEventListener('mouseup', off); btn.addEventListener('mouseleave', off);
+    const on = function(e){ e.preventDefault(); ensureAudio(); keys[k]=true; attemptMove(dir); };
+    const off = function(e){ e.preventDefault(); keys[k]=false; };
+    btn.addEventListener('touchstart', on, {passive:false});
+    btn.addEventListener('touchend', off, {passive:false});
+    btn.addEventListener('touchcancel', off, {passive:false});
+    btn.addEventListener('mousedown', on);
+    btn.addEventListener('mouseup', off);
+    btn.addEventListener('mouseleave', off);
 });
-document.getElementById('a-btn').addEventListener('click', ()=>{
+document.getElementById('a-btn').addEventListener('click', function(){
     ensureAudio();
     if(gameState==='title') startGame();
     else if(gameState==='dialog') advanceDialog();
 });
+document.getElementById('b-btn').addEventListener('click', function(){
+    ensureAudio();
+    if(dexScreen.classList.contains('active')) closeDex();
+    else if(gameState==='overworld') openDex();
+});
+document.getElementById('dex-btn').addEventListener('click', function(){
+    ensureAudio();
+    if(dexScreen.classList.contains('active')) closeDex(); else openDex();
+});
+document.getElementById('menu-btn').addEventListener('click', function(){
+    ensureAudio();
+    if(settingsScreen.classList.contains('active')) closeSettings(); else openSettings();
+});
 
-/* ---------- 16. INIT ---------- */
+// Tumutugmang sukat sa screen ng cellphone habang buo ang 480x480 na coordinate space
+const stageEl = document.getElementById('stage');
+const gcEl = document.getElementById('game-container');
+function layout(){
+    const consoleEl = document.querySelector('.console');
+    const pad = 28;
+    const avail = Math.min(window.innerWidth - pad, 480);
+    const s = Math.max(0.5, Math.min(1, avail/480));
+    stageEl.style.width = Math.round(480*s)+'px';
+    stageEl.style.height = Math.round(480*s)+'px';
+    gcEl.style.transform = s < 1 ? 'scale('+s+')' : 'none';
+    if(consoleEl) consoleEl.style.width = 'auto';
+}
+window.addEventListener('resize', layout);
+window.addEventListener('orientationchange', layout);
+
+/* ---------- 19. SAVE / LOAD (offline, localStorage) ---------- */
+const SAVE_KEY = 'malolos_drrm_save_v2';
+function saveGame(){
+    try{
+        localStorage.setItem(SAVE_KEY, JSON.stringify({
+            dex: Array.from(dexFound),
+            badges: badges,
+            landmarks: Array.from(visitedLandmarks),
+            tutorial: tutorialSeen,
+            ending: endingShown,
+            settings: SETTINGS,
+        }));
+    }catch(e){ /* walang storage — tumatakbo pa rin ang laro */ }
+}
+function loadGame(){
+    let raw = null;
+    try{ raw = localStorage.getItem(SAVE_KEY); }catch(e){}
+    if(!raw) return;
+    try{
+        const d = JSON.parse(raw);
+        if(Array.isArray(d.dex)) d.dex.forEach(function(id){ if(INCIDENT_INDEX[id]) dexFound.add(id); });
+        if(Array.isArray(d.landmarks)) d.landmarks.forEach(function(id){ visitedLandmarks.add(Number(id)); });
+        if(d.badges) CAT_ORDER.forEach(function(c){ badges[c] = !!d.badges[c]; });
+        tutorialSeen = !!d.tutorial;
+        endingShown = !!d.ending;
+        if(d.settings){
+            SETTINGS.sound  = d.settings.sound !== false;
+            SETTINGS.fx     = d.settings.fx !== false;
+            SETTINGS.speed  = SPEEDS[d.settings.speed] ? d.settings.speed : 'normal';
+            SETTINGS.bigText= !!d.settings.bigText;
+        }
+    }catch(e){ /* sirang save — magsisimula sa umpisa */ }
+    // Muling suriin ang badge kung sakaling nabago ang listahan ng insidente
+    CAT_ORDER.forEach(function(c){
+        if(!badges[c] && catIncidents(c).every(function(i){ return dexFound.has(i.id); })) badges[c] = true;
+    });
+}
+
+/* ---------- 20. INIT ---------- */
+loadGame();
+muted = !SETTINGS.sound;
+muteBtn.textContent = muted ? '♪ TUNOG: SARADO' : '♪ TUNOG: BUKAS';
+document.body.classList.toggle('no-anim', !SETTINGS.fx);
+gcEl.classList.toggle('big-text', SETTINGS.bigText);
+refreshBadgeSlots();
+updateHud();
+layout();
 updateCamera();
 requestAnimationFrame(gameLoop);
 </script>
